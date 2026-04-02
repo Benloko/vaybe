@@ -4,7 +4,30 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const ensureRootElement = () => {
+  const existing = document.getElementById('root');
+  if (existing) return existing;
+
+  const created = document.createElement('div');
+  created.id = 'root';
+
+  if (document.body) {
+    document.body.appendChild(created);
+  } else {
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        document.body?.appendChild(created);
+      },
+      { once: true }
+    );
+  }
+
+  return created;
+};
+
+const rootElement = ensureRootElement();
+const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <App />

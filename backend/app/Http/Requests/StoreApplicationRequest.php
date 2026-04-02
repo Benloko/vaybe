@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreApplicationRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'email' => mb_strtolower(trim((string) $this->input('email'))),
+            'portfolio' => $this->input('portfolio') !== '' ? $this->input('portfolio') : null,
+            'cv' => $this->input('cv') !== '' ? $this->input('cv') : null,
+        ]);
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'offer_id' => ['required', 'integer', 'exists:offers,id'],
+            'nom' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'telephone' => ['required', 'string', 'max:30'],
+            'ville' => ['required', 'string', 'max:255'],
+            'role' => ['required', 'string', 'in:dev,designer'],
+            'message' => ['required', 'string', 'min:10', 'max:5000'],
+            'portfolio' => ['nullable', 'string', 'url', 'max:2048'],
+            'cv' => ['nullable', 'string', 'url', 'max:2048'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'offer_id.required' => 'Choisissez une opportunité.',
+            'offer_id.exists' => 'Opportunité invalide.',
+            'nom.required' => 'Le nom est obligatoire.',
+            'email.required' => 'L\'email est obligatoire.',
+            'email.email' => 'Le format de l\'email est invalide.',
+            'telephone.required' => 'Le numéro de téléphone est obligatoire.',
+            'ville.required' => 'La ville de résidence est obligatoire.',
+            'role.required' => 'Le rôle est obligatoire.',
+            'role.in' => 'Le rôle doit être "dev" ou "designer".',
+            'message.required' => 'Le message de motivation est obligatoire.',
+            'message.min' => 'Le message doit contenir au moins :min caractères.',
+            'portfolio.url' => 'Le portfolio doit être une URL valide.',
+            'cv.url' => 'Le CV doit être une URL valide.',
+        ];
+    }
+}
