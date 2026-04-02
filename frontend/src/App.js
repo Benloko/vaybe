@@ -99,6 +99,16 @@ function AppLayout() {
   const isAdminRoute = location.pathname.startsWith('/admin');
   const showAdminNav = isAdminRoute && Boolean(adminToken);
   const isCandidateMessengerRoute = location.pathname.startsWith('/messages/') || location.pathname.startsWith('/notifications/');
+  const isCandidateProfileRoute =
+    location.pathname.startsWith('/profil') ||
+    location.pathname.startsWith('/candidature') ||
+    location.pathname.startsWith('/candidatures');
+
+  const isLikelyStatusBody = (body) => {
+    const text = String(body || '').toLowerCase();
+    if (!text.includes('candidature')) return false;
+    return text.includes('approuv') || text.includes('rejet');
+  };
 
   useEffect(() => {
     setAdminMenuOpen(false);
@@ -239,6 +249,9 @@ function AppLayout() {
         let unread = 0;
         for (const m of Array.isArray(list) ? list : []) {
           if (m?.sender !== 'admin') continue;
+          const kind = String(m?.kind || 'message');
+          if (kind !== 'message') continue;
+          if (isLikelyStatusBody(m?.body)) continue;
           const ts = new Date(m?.created_at || 0).getTime();
           if (!Number.isFinite(ts) || ts <= 0) continue;
           if (ts > lastSeenTs) unread += 1;
@@ -278,19 +291,29 @@ function AppLayout() {
       }
     >
       <header className="sticky top-0 z-50 bg-white border-b">
-        <div className="max-w-6xl mx-auto pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4 py-2.5 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 sm:justify-between">
-          <div className="text-base sm:text-base font-bold text-gray-800 leading-none whitespace-nowrap">
+        <div
+          className={`max-w-6xl mx-auto pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4 py-3 sm:py-4 flex items-center gap-3 ${
+            isAdminRoute ? 'flex-col sm:flex-row sm:justify-between w-full' : 'justify-between'
+          }`}
+        >
+          <div className="text-xl sm:text-lg font-extrabold tracking-tight text-gray-900 leading-none whitespace-nowrap">
             Vaybe
             <span className="hidden sm:inline"> • {isAdminRoute ? 'Admin' : 'Candidatures'}</span>
           </div>
-          <nav className="flex items-center gap-2 sm:justify-end">
+          <nav
+            className={
+              isAdminRoute
+                ? 'flex items-center gap-2 sm:justify-end w-full sm:w-auto'
+                : 'flex items-center gap-2 flex-1 min-w-0 justify-end'
+            }
+          >
             {!isAdminRoute ? (
               <div className="flex flex-nowrap gap-1.5 sm:gap-2 sm:justify-end overflow-x-auto [-webkit-overflow-scrolling:touch]">
                 <NavLink
                   to="/"
                   className={({ isActive }) =>
-                    `shrink-0 whitespace-nowrap px-2.5 py-2 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                      isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                    `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-4 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                      isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                     }`
                   }
                   end
@@ -302,8 +325,8 @@ function AppLayout() {
                   <NavLink
                     to="/candidature"
                     className={({ isActive }) =>
-                      `shrink-0 whitespace-nowrap px-2.5 py-2 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                        isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                      `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-4 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                        isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                       }`
                     }
                   >
@@ -315,8 +338,8 @@ function AppLayout() {
                   <NavLink
                     to={lastApplicationId ? `/notifications/${lastApplicationId}` : '/candidature'}
                     className={({ isActive }) =>
-                      `relative shrink-0 px-2.5 py-2 sm:px-3 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                        isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                      `shrink-0 min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-3 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                        isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                       }`
                     }
                     aria-label="Notifications"
@@ -330,17 +353,12 @@ function AppLayout() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-5 w-5"
+                      className="h-6 w-6 sm:h-5 sm:w-5"
                       aria-hidden="true"
                     >
                       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                     </svg>
-                    {candidateUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-extrabold ring-2 ring-white px-1">
-                        {candidateUnreadCount > 9 ? '9+' : String(candidateUnreadCount)}
-                      </span>
-                    )}
                   </NavLink>
                 )}
 
@@ -349,8 +367,8 @@ function AppLayout() {
                     <NavLink
                       to="/connexion"
                       className={({ isActive }) =>
-                        `shrink-0 whitespace-nowrap px-2.5 py-2 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                          isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                        `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-4 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                          isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                         }`
                       }
                     >
@@ -365,12 +383,17 @@ function AppLayout() {
                   <NavLink
                     to={`/messages/${lastApplicationId}`}
                     className={({ isActive }) =>
-                      `shrink-0 whitespace-nowrap px-2.5 py-2 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                        isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                      `relative shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-4 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                        isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                       }`
                     }
                   >
                     Messages
+                    {candidateUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-extrabold ring-2 ring-white px-1">
+                        {candidateUnreadCount > 9 ? '9+' : String(candidateUnreadCount)}
+                      </span>
+                    )}
                   </NavLink>
                 )}
               </div>
@@ -491,7 +514,9 @@ function AppLayout() {
         className={
           isCandidateMessengerRoute
             ? 'max-w-6xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 py-2 sm:py-6 flex flex-col overflow-hidden'
-            : 'max-w-6xl mx-auto w-full flex-1 min-h-0 px-3 sm:px-4 py-4 sm:py-10 flex flex-col'
+            : isCandidateProfileRoute
+              ? 'w-full flex-1 min-h-0 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-6 py-4 sm:py-10 flex flex-col'
+              : 'max-w-6xl mx-auto w-full flex-1 min-h-0 px-3 sm:px-4 py-4 sm:py-10 flex flex-col'
         }
       >
         <div className="flex-1 min-h-0 flex flex-col">

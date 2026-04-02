@@ -20,7 +20,6 @@ class StoreApplicationRequest extends FormRequest
         $this->merge([
             'email' => mb_strtolower(trim((string) $this->input('email'))),
             'portfolio' => $this->input('portfolio') !== '' ? $this->input('portfolio') : null,
-            'cv' => $this->input('cv') !== '' ? $this->input('cv') : null,
         ]);
     }
 
@@ -40,7 +39,7 @@ class StoreApplicationRequest extends FormRequest
             'role' => ['required', 'string', 'in:dev,designer'],
             'message' => ['required', 'string', 'min:10', 'max:5000'],
             'portfolio' => ['nullable', 'string', 'url', 'max:2048'],
-            'cv' => ['nullable', 'string', 'url', 'max:2048'],
+            'cv' => ['required', 'file', 'mimes:pdf', 'max:10240'],
         ];
     }
 
@@ -59,7 +58,9 @@ class StoreApplicationRequest extends FormRequest
             'message.required' => 'Le message de motivation est obligatoire.',
             'message.min' => 'Le message doit contenir au moins :min caractères.',
             'portfolio.url' => 'Le portfolio doit être une URL valide.',
-            'cv.url' => 'Le CV doit être une URL valide.',
+            'cv.required' => 'Le CV (PDF) est obligatoire.',
+            'cv.mimes' => 'Le CV doit être un fichier PDF.',
+            'cv.max' => 'Le CV ne doit pas dépasser :max Ko.',
         ];
     }
 }

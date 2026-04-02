@@ -55,6 +55,24 @@ class ApplicationController extends Controller
     {
         $validated = $request->validated();
 
+        // CV obligatoire (PDF)
+        $cvFile = $validated['cv'] ?? null;
+        if ($cvFile) {
+            $ext = strtolower((string) $cvFile->getClientOriginalExtension());
+            if ($ext === '') {
+                $ext = 'pdf';
+            }
+
+            $filename = sprintf('cv_%s.%s',
+                (string) now()->format('Ymd_His_u'),
+                preg_replace('/[^a-z0-9]/', '', $ext)
+            );
+
+            $path = $cvFile->storeAs('cvs', $filename, 'public');
+            // Les fichiers du disque "public" sont exposés via /storage
+            $validated['cv'] = '/storage/' . ltrim((string) $path, '/');
+        }
+
         $email = mb_strtolower(trim((string) ($validated['email'] ?? '')));
         $offerId = (int) ($validated['offer_id'] ?? 0);
 

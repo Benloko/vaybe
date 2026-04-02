@@ -178,6 +178,11 @@ export default function CandidateMessenger() {
       ? notifications
       : (Array.isArray(messages) ? messages : [])
         .filter((m) => m?.sender === 'admin')
+        .filter((m) => {
+          const kind = String(m?.kind || 'message');
+          if (kind !== 'message') return true;
+          return isLikelyStatusBody(m?.body);
+        })
         .map((m) => ({
           key: `${String(application?.id || id)}:${String(m?.id || '')}`,
           applicationId: application?.id || id,
@@ -195,55 +200,6 @@ export default function CandidateMessenger() {
       .slice()
       .sort((a, b) => toTs(b?.message?.created_at) - toTs(a?.message?.created_at));
   }, [application?.id, application?.offer?.title, application?.status, id, messages, notifications]);
-
-  const loadCandidateNotifications = async (email) => {
-    const e = String(email || '').trim();
-    if (!e) {
-      setNotifications([]);
-      return;
-    }
-
-    setNotificationsLoading(true);
-    setNotificationsError('');
-
-    try {
-      const appsPayload = await applicationService.getCandidateApplicationsByEmail(e);
-      const apps = Array.isArray(appsPayload?.data) ? appsPayload.data : [];
-
-      const perApp = await Promise.all(
-        apps
-          .filter((a) => a?.id)
-          .map(async (a) => {
-            try {
-              const msgsPayload = await applicationService.getApplicationMessages(a.id, { candidateEmail: e });
-              const msgs = Array.isArray(msgsPayload?.data) ? msgsPayload.data : [];
-
-              const offerTitle = a?.offer?.title || a?.offer_title || a?.title || '';
-              const appStatus = a?.status;
-
-              return msgs
-                .filter((m) => m?.sender === 'admin')
-                .map((m) => ({
-                  key: `${String(a.id)}:${String(m?.id || '')}`,
-                  applicationId: a.id,
-                  applicationStatus: appStatus,
-                  offerTitle,
-                  message: m,
-                }));
-            } catch {
-              return [];
-            }
-          })
-      );
-
-      setNotifications(perApp.flat());
-    } catch (err) {
-      setNotificationsError(err?.message || 'Impossible de charger les notifications.');
-      setNotifications([]);
-    } finally {
-      setNotificationsLoading(false);
-    }
-  };
 
   const dismissNotification = async ({ email, entry }) => {
     const e = String(email || '').trim();
@@ -285,6 +241,8 @@ export default function CandidateMessenger() {
   };
 
   const loadAll = async () => {
+    let appData = null;
+
     setError('');
     setMessagesError('');
     setNotificationsError('');
@@ -292,24 +250,8 @@ export default function CandidateMessenger() {
     try {
       setLoading(true);
       const payload = await applicationService.getApplication(id);
-      setApplication(payload?.data || null);
-
-      if (requestedMode === 'notifications') {
-        const email = payload?.data?.email;
-        await loadCandidateNotifications(email);
-      }
-
-      const loadedId = payload?.data?.id;
-      const loadedStatus = payload?.data?.status;
-      if (loadedId) {
-        try {
-          localStorage.setItem('lastApplicationId', String(loadedId));
-          if (loadedStatus) localStorage.setItem('lastApplicationStatus', String(loadedStatus));
-          window.dispatchEvent(new Event('lastApplicationIdChanged'));
-        } catch {
-          // ignore
-        }
-      }
+      appData = payload?.data || null;
+      setApplication(appData);
     } catch (err) {
       setError(err?.message || 'Impossible de charger la candidature.');
     } finally {
@@ -318,18 +260,50 @@ export default function CandidateMessenger() {
 
     try {
       setMessagesLoading(true);
+      setNotificationsLoading(true);
       const payload = await applicationService.getApplicationMessages(id);
       const loadedMessages = payload?.data || [];
       setMessages(loadedMessages);
 
-      // Notifications (badge header) — en ouvrant la messagerie, on considère les notifications comme vues.
+      // Notifications affichées ici: uniquement les notifications "statut" (pas les messages de chat)
       try {
+        const offerTitle = String(appData?.offer?.title || appData?.offer_title || '').trim();
+        const appStatus = appData?.status;
+        const list = (Array.isArray(loadedMessages) ? loadedMessages : [])
+          .filter((m) => m?.sender === 'admin')
+          .filter((m) => {
+            const kind = String(m?.kind || 'message');
+            if (kind !== 'message') return true;
+            return isLikelyStatusBody(m?.body);
+          })
+          .map((m) => ({
+            key: `${String(appData?.id || id)}:${String(m?.id || '')}`,
+            applicationId: appData?.id || id,
+            applicationStatus: appStatus,
+            offerTitle,
+            message: m,
+          }));
+
+        setNotifications(list);
+      } catch {
+        setNotifications([]);
+      }
+
+      // Badge "nouveaux messages" — on le remet à zéro uniquement si on ouvre la conversation.
+      try {
+        const isApproved = String(appData?.status || '') === 'approved';
+        const isConversationRoute = !isNotificationsRoute;
+        if (!(isApproved && isConversationRoute)) return;
+
         const seenKey = `candidateNotificationsSeenAt:${String(id)}`;
         const unreadKey = `candidateUnreadCount:${String(id)}`;
 
         let newestAdminTs = 0;
         for (const m of Array.isArray(loadedMessages) ? loadedMessages : []) {
           if (m?.sender !== 'admin') continue;
+          const kind = String(m?.kind || 'message');
+          if (kind !== 'message') continue;
+          if (isLikelyStatusBody(m?.body)) continue;
           const ts = new Date(m?.created_at || 0).getTime();
           if (!Number.isFinite(ts) || ts <= 0) continue;
           if (ts > newestAdminTs) newestAdminTs = ts;
@@ -345,6 +319,7 @@ export default function CandidateMessenger() {
       setMessagesError(err?.message || 'Impossible de charger les messages.');
     } finally {
       setMessagesLoading(false);
+      setNotificationsLoading(false);
     }
   };
 

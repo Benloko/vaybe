@@ -41,9 +41,9 @@ export default function Opportunities() {
     <div className="w-full">
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         <div className="px-4 py-4 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <div className="text-xs sm:text-sm text-white/90">Carrières</div>
-          <h1 className="text-xl sm:text-3xl font-extrabold">Opportunités</h1>
-          <p className="mt-1 text-xs sm:text-base text-white/90">Découvrez les opportunités et postulez en quelques minutes.</p>
+          <div className="text-sm sm:text-sm text-white/90">Carrières</div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold">Opportunités</h1>
+          <p className="mt-1 text-sm sm:text-base text-white/90">Découvrez les opportunités et postulez en quelques minutes.</p>
         </div>
 
         <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
@@ -52,7 +52,7 @@ export default function Opportunities() {
           ) : error ? (
             <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-800">
               <div className="font-bold">Oups…</div>
-              <div className="text-sm mt-1">{error}</div>
+              <div className="text-base sm:text-sm mt-1">{error}</div>
             </div>
           ) : openedOffers.length === 0 ? (
             <div className="rounded-2xl border bg-gray-50 p-4 sm:p-5 text-gray-700">Aucune opportunité ouverte pour le moment.</div>
@@ -69,10 +69,10 @@ export default function Opportunities() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
+                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">
                           Ouverte
                         </span>
-                        <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-700 ring-1 ring-gray-200">
+                        <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700 ring-1 ring-gray-200">
                           {offer.type === 'designer' ? 'Designer' : 'Développeur'}
                         </span>
                       </div>
@@ -82,12 +82,12 @@ export default function Opportunities() {
                       </div>
 
                       {offer.description && (
-                        <div className="mt-2 text-sm text-gray-700 line-clamp-2 whitespace-pre-wrap">
+                        <div className="mt-2 text-base sm:text-sm text-gray-700 line-clamp-2 whitespace-pre-wrap">
                           {offer.description}
                         </div>
                       )}
 
-                      <div className="mt-3 inline-flex items-center text-sm font-semibold text-blue-700 transition group-hover:text-blue-800">
+                      <div className="mt-3 inline-flex items-center text-base sm:text-sm font-semibold text-blue-700 transition group-hover:text-blue-800">
                         Voir les détails <span aria-hidden="true" className="ml-1">→</span>
                       </div>
                     </div>
