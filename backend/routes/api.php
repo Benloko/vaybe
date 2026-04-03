@@ -29,6 +29,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::get('/health', fn() => response()->json([
+    'status' => 'ok',
+    'env' => app()->environment(),
+    'timestamp' => now()->toIso8601String(),
+]));
+
 // Routes pour les candidatures (sans authentification pour ce test)
 Route::apiResource('applications', ApplicationController::class, [
     'only' => ['store', 'show']

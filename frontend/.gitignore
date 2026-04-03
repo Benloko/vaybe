@@ -18,6 +18,9 @@
 .env.test.local
 .env.production.local
 
+# Ne pas committer les .env (sauf .env.production qui ne contient pas de secrets)
+# .env.production est commité intentionnellement pour Vercel build
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

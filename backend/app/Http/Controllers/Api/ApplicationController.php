@@ -152,14 +152,14 @@ class ApplicationController extends Controller
             preg_replace('/[^a-z0-9]/', '', $ext)
         );
 
-        $path = $file->storeAs('avatars', $filename, 'public');
+        $disk = config('filesystems.default', 'public');
+        $path = $file->storeAs('avatars', $filename, $disk);
 
         // Nettoie l'ancien avatar si existant
         try {
-            $old = (string) ($application->avatar_path ?? '');
-            $old = trim($old);
-            if ($old !== '' && Storage::disk('public')->exists($old)) {
-                Storage::disk('public')->delete($old);
+            $old = trim((string) ($application->avatar_path ?? ''));
+            if ($old !== '' && Storage::disk($disk)->exists($old)) {
+                Storage::disk($disk)->delete($old);
             }
         } catch (\Throwable $e) {
             // ignore
@@ -178,11 +178,12 @@ class ApplicationController extends Controller
 
     public function deleteAvatar(Application $application)
     {
+        $disk = config('filesystems.default', 'public');
+
         try {
-            $old = (string) ($application->avatar_path ?? '');
-            $old = trim($old);
-            if ($old !== '' && Storage::disk('public')->exists($old)) {
-                Storage::disk('public')->delete($old);
+            $old = trim((string) ($application->avatar_path ?? ''));
+            if ($old !== '' && Storage::disk($disk)->exists($old)) {
+                Storage::disk($disk)->delete($old);
             }
         } catch (\Throwable $e) {
             // ignore
