@@ -1,4 +1,19 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const DEFAULT_API_URL = '/api';
+const RAW_API_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) || '';
+
+function normalizeApiUrl(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return DEFAULT_API_URL;
+
+  // Autorise les formes : "/api", "/api/", "http://host:port", "http://host:port/api".
+  if (value === '/api' || value === '/api/') return '/api';
+
+  const noTrailingSlash = value.replace(/\/+$/, '');
+  if (noTrailingSlash.endsWith('/api')) return noTrailingSlash;
+  return `${noTrailingSlash}/api`;
+}
+
+const API_URL = normalizeApiUrl(RAW_API_URL);
 
 function getApiBaseUrl() {
   return String(API_URL || '').replace(/\/api\/?$/, '');
@@ -861,12 +876,15 @@ export const applicationService = {
   // Soumettre une nouvelle candidature
   async submitApplication(data) {
     try {
+      const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
       const response = await fetch(`${API_URL}/applications`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        headers: isFormData
+          ? undefined
+          : {
+              'Content-Type': 'application/json',
+            },
+        body: isFormData ? data : JSON.stringify(data),
       });
 
       const payload = await response.json().catch(() => ({}));

@@ -210,29 +210,31 @@ export default function ApplicationProfile() {
       if (!alive()) return;
       const loadedMessages = payload?.data || [];
 
-      // Notifications (badge header) — on compte les messages admin non vus.
+      // Badge "nouveaux messages" — on compte uniquement les vrais messages admin (hors changements de statut).
       try {
+        const isLikelyStatusBody = (body) => {
+          const text = String(body || '').toLowerCase();
+          if (!text.includes('candidature')) return false;
+          return text.includes('approuv') || text.includes('rejet');
+        };
+
         const seenKey = `candidateNotificationsSeenAt:${String(id)}`;
         const unreadKey = `candidateUnreadCount:${String(id)}`;
         const lastSeenAt = localStorage.getItem(seenKey);
         const lastSeenTs = lastSeenAt ? new Date(lastSeenAt).getTime() : 0;
         let unread = 0;
-        let newestAdminTs = 0;
 
         for (const m of Array.isArray(loadedMessages) ? loadedMessages : []) {
           if (m?.sender !== 'admin') continue;
+          const kind = String(m?.kind || 'message');
+          if (kind !== 'message') continue;
+          if (isLikelyStatusBody(m?.body)) continue;
           const ts = new Date(m?.created_at || 0).getTime();
           if (!Number.isFinite(ts) || ts <= 0) continue;
-          if (ts > newestAdminTs) newestAdminTs = ts;
           if (ts > lastSeenTs) unread += 1;
         }
 
         localStorage.setItem(unreadKey, String(unread));
-        window.dispatchEvent(new Event('candidateNotificationsChanged'));
-
-        // Si l'utilisateur consulte le profil, on considère les notifications comme vues.
-        localStorage.setItem(seenKey, new Date(newestAdminTs > 0 ? newestAdminTs : Date.now()).toISOString());
-        localStorage.setItem(unreadKey, '0');
         window.dispatchEvent(new Event('candidateNotificationsChanged'));
       } catch {
         // ignore
@@ -266,6 +268,7 @@ export default function ApplicationProfile() {
     if (params.get('created') !== '1') return;
 
     setShowCreatedBanner(true);
+    setActiveTab('candidatures');
     try {
       params.delete('created');
       const nextSearch = params.toString();
@@ -471,7 +474,7 @@ export default function ApplicationProfile() {
 
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6">
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         <div className="h-20 sm:h-28 bg-gradient-to-r from-emerald-600 to-teal-600" />
 
@@ -542,24 +545,24 @@ export default function ApplicationProfile() {
                   />
 
                   {avatarSaving ? (
-                    <div className="mt-2 text-xs text-gray-600">Upload en cours…</div>
+                    <div className="mt-2 text-sm text-gray-600">Upload en cours…</div>
                   ) : avatarSaveError ? (
-                    <div className="mt-2 text-xs text-rose-700">{avatarSaveError}</div>
+                    <div className="mt-2 text-sm text-rose-700">{avatarSaveError}</div>
                   ) : null}
                 </div>
 
                 <div className="flex-1">
-                  <div className="text-xs sm:text-sm text-gray-600">Profil</div>
+                  <div className="text-sm sm:text-base text-gray-600">Profil</div>
                   <h1 className="text-xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{application.nom}</h1>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs sm:text-sm font-semibold ring-1 ${getStatusBadge(application.status)}`}>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-base font-semibold ring-1 ${getStatusBadge(application.status)}`}>
                       {currentStatusLabel}
                     </span>
                     {currentOfferTitle && (
-                      <span className="text-xs sm:text-sm text-gray-600">• {currentOfferTitle}</span>
+                      <span className="text-sm sm:text-base text-gray-600">• {currentOfferTitle}</span>
                     )}
                     {currentRoleLabel && (
-                      <span className="text-xs sm:text-sm text-gray-600">• {currentRoleLabel}</span>
+                      <span className="text-sm sm:text-base text-gray-600">• {currentRoleLabel}</span>
                     )}
                   </div>
                 </div>
@@ -615,7 +618,7 @@ export default function ApplicationProfile() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('infos')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold border ${
+                  className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-semibold border ${
                     activeTab === 'infos' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-50'
                   }`}
                 >
@@ -624,7 +627,7 @@ export default function ApplicationProfile() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('candidatures')}
-                  className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold border ${
+                  className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-semibold border ${
                     activeTab === 'candidatures' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-50'
                   }`}
                 >
@@ -635,9 +638,9 @@ export default function ApplicationProfile() {
               {activeTab === 'infos' && (
                 <div className="mt-5 space-y-5">
                   <div className="rounded-2xl border p-4 sm:p-5 bg-white">
-                    <div className="text-sm font-extrabold text-gray-900">Informations</div>
+                    <div className="text-base sm:text-lg font-extrabold text-gray-900">Informations</div>
                     {(currentOfferTitle || currentRoleLabel) && (
-                      <div className="mt-2 text-sm text-gray-700">
+                      <div className="mt-2 text-base sm:text-lg text-gray-700">
                         Vous consultez votre candidature{currentOfferTitle ? ` pour l’offre “${currentOfferTitle}”` : ''}
                         {currentRoleLabel ? ` (${currentRoleLabel}).` : '.'}
                       </div>
@@ -645,22 +648,22 @@ export default function ApplicationProfile() {
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {currentOfferTitle && (
                         <div className="rounded-xl border p-3 sm:p-4">
-                          <div className="text-xs text-gray-500">Offre</div>
-                          <div className="font-semibold text-gray-900">{currentOfferTitle}</div>
+                          <div className="text-sm text-gray-500">Offre</div>
+                          <div className="text-base sm:text-lg font-semibold text-gray-900">{currentOfferTitle}</div>
                         </div>
                       )}
 
                       {currentRoleLabel && (
                         <div className="rounded-xl border p-3 sm:p-4">
-                          <div className="text-xs text-gray-500">Type</div>
-                          <div className="font-semibold text-gray-900">{currentRoleLabel}</div>
+                          <div className="text-sm text-gray-500">Type</div>
+                          <div className="text-base sm:text-lg font-semibold text-gray-900">{currentRoleLabel}</div>
                         </div>
                       )}
 
                       <div className="rounded-xl border p-3 sm:p-4">
                         {isEditing('full_name') ? (
                           <div className="space-y-2">
-                            <div className="text-xs text-gray-500">Nom complet</div>
+                            <div className="text-sm text-gray-500">Nom complet</div>
                             <input
                               value={profileDraft.full_name}
                               onChange={(e) => setProfileDraft((prev) => ({ ...prev, full_name: e.target.value }))}
@@ -677,7 +680,7 @@ export default function ApplicationProfile() {
                                 type="button"
                                 onClick={cancelEditProfile}
                                 disabled={profileSaveBusy}
-                                className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-xs font-semibold"
+                                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold"
                               >
                                 Annuler
                               </button>
@@ -685,7 +688,7 @@ export default function ApplicationProfile() {
                                 type="button"
                                 onClick={saveProfile}
                                 disabled={profileSaveBusy}
-                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold"
+                                className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold"
                               >
                                 {profileSaveBusy ? '…' : 'Appliquer'}
                               </button>
@@ -694,14 +697,14 @@ export default function ApplicationProfile() {
                         ) : (
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="text-xs text-gray-500">Nom complet</div>
+                              <div className="text-sm text-gray-500">Nom complet</div>
                               <div className="font-semibold text-gray-900 break-words">{candidateAccount.full_name || application.nom}</div>
                             </div>
                             {canEditProfile && (
                               <button
                                 type="button"
                                 onClick={() => startEditProfile('full_name')}
-                                className="px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 whitespace-nowrap"
+                                className="px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold text-gray-700 whitespace-nowrap"
                               >
                                 ✎
                               </button>
@@ -713,7 +716,7 @@ export default function ApplicationProfile() {
                       <div className="rounded-xl border p-3 sm:p-4">
                         {isEditing('email') ? (
                           <div className="space-y-2">
-                            <div className="text-xs text-gray-500">Email</div>
+                            <div className="text-sm text-gray-500">Email</div>
                             <input
                               value={profileDraft.email}
                               onChange={(e) => setProfileDraft((prev) => ({ ...prev, email: e.target.value }))}
@@ -730,7 +733,7 @@ export default function ApplicationProfile() {
                                 type="button"
                                 onClick={cancelEditProfile}
                                 disabled={profileSaveBusy}
-                                className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-xs font-semibold"
+                                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold"
                               >
                                 Annuler
                               </button>
@@ -738,7 +741,7 @@ export default function ApplicationProfile() {
                                 type="button"
                                 onClick={saveProfile}
                                 disabled={profileSaveBusy}
-                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold"
+                                className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold"
                               >
                                 {profileSaveBusy ? '…' : 'Appliquer'}
                               </button>
@@ -747,14 +750,14 @@ export default function ApplicationProfile() {
                         ) : (
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="text-xs text-gray-500">Email</div>
+                              <div className="text-sm text-gray-500">Email</div>
                               <div className="font-semibold text-gray-900 break-words">{candidateAccount.email || application.email || '—'}</div>
                             </div>
                             {canEditProfile && (
                               <button
                                 type="button"
                                 onClick={() => startEditProfile('email')}
-                                className="px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 whitespace-nowrap"
+                                className="px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold text-gray-700 whitespace-nowrap"
                               >
                                 ✎
                               </button>
@@ -766,7 +769,7 @@ export default function ApplicationProfile() {
                       <div className="rounded-xl border p-3 sm:p-4">
                         {isEditing('phone') ? (
                           <div className="space-y-2">
-                            <div className="text-xs text-gray-500">Numéro</div>
+                            <div className="text-sm text-gray-500">Numéro</div>
                             <input
                               value={profileDraft.phone}
                               onChange={(e) => setProfileDraft((prev) => ({ ...prev, phone: e.target.value }))}
@@ -783,7 +786,7 @@ export default function ApplicationProfile() {
                                 type="button"
                                 onClick={cancelEditProfile}
                                 disabled={profileSaveBusy}
-                                className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-xs font-semibold"
+                                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold"
                               >
                                 Annuler
                               </button>
@@ -791,7 +794,7 @@ export default function ApplicationProfile() {
                                 type="button"
                                 onClick={saveProfile}
                                 disabled={profileSaveBusy}
-                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold"
+                                className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold"
                               >
                                 {profileSaveBusy ? '…' : 'Appliquer'}
                               </button>
@@ -800,14 +803,14 @@ export default function ApplicationProfile() {
                         ) : (
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="text-xs text-gray-500">Numéro</div>
+                              <div className="text-sm text-gray-500">Numéro</div>
                               <div className="font-semibold text-gray-900 break-words">{candidateAccount.phone || application.telephone || '—'}</div>
                             </div>
                             {canEditProfile && (
                               <button
                                 type="button"
                                 onClick={() => startEditProfile('phone')}
-                                className="px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 whitespace-nowrap"
+                                className="px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold text-gray-700 whitespace-nowrap"
                               >
                                 ✎
                               </button>
@@ -819,7 +822,7 @@ export default function ApplicationProfile() {
                       <div className="rounded-xl border p-3 sm:p-4">
                         {isEditing('city') ? (
                           <div className="space-y-2">
-                            <div className="text-xs text-gray-500">Ville de résidence</div>
+                            <div className="text-sm text-gray-500">Ville de résidence</div>
                             <input
                               value={profileDraft.city}
                               onChange={(e) => setProfileDraft((prev) => ({ ...prev, city: e.target.value }))}
@@ -836,7 +839,7 @@ export default function ApplicationProfile() {
                                 type="button"
                                 onClick={cancelEditProfile}
                                 disabled={profileSaveBusy}
-                                className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-xs font-semibold"
+                                className="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold"
                               >
                                 Annuler
                               </button>
@@ -844,7 +847,7 @@ export default function ApplicationProfile() {
                                 type="button"
                                 onClick={saveProfile}
                                 disabled={profileSaveBusy}
-                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold"
+                                className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold"
                               >
                                 {profileSaveBusy ? '…' : 'Appliquer'}
                               </button>
@@ -853,14 +856,14 @@ export default function ApplicationProfile() {
                         ) : (
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="text-xs text-gray-500">Ville de résidence</div>
+                              <div className="text-sm text-gray-500">Ville de résidence</div>
                               <div className="font-semibold text-gray-900 break-words">{candidateAccount.city || application.ville || '—'}</div>
                             </div>
                             {canEditProfile && (
                               <button
                                 type="button"
                                 onClick={() => startEditProfile('city')}
-                                className="px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 whitespace-nowrap"
+                                className="px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold text-gray-700 whitespace-nowrap"
                               >
                                 ✎
                               </button>
@@ -877,12 +880,12 @@ export default function ApplicationProfile() {
                 <div className="mt-5 space-y-4">
                   <div className="rounded-2xl border p-4 sm:p-5 bg-white">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-extrabold text-gray-900">Toutes mes candidatures</div>
+                      <div className="text-base sm:text-lg font-extrabold text-gray-900">Toutes mes candidatures</div>
                       <div className="relative" ref={myAppsFilterRef}>
                         <button
                           type="button"
                           onClick={() => setMyAppsFilterOpen((v) => !v)}
-                          className="text-xs px-2 py-1 rounded-lg border bg-white hover:bg-gray-50 font-semibold whitespace-nowrap"
+                          className="text-sm px-3 py-2 rounded-xl border bg-white hover:bg-gray-50 font-semibold whitespace-nowrap"
                           aria-haspopup="menu"
                           aria-expanded={myAppsFilterOpen}
                         >
@@ -964,15 +967,15 @@ export default function ApplicationProfile() {
                           <div className="flex items-start justify-between gap-4">
                             <div>
                               <div className="text-base sm:text-lg font-extrabold text-gray-900 leading-snug">{a.offer_title || 'Candidature'}</div>
-                              <div className="mt-1 text-xs sm:text-sm text-gray-600">
+                              <div className="mt-1 text-sm sm:text-base text-gray-600">
                                 {a.role === 'designer' ? 'Designer' : 'Développeur'}
                               </div>
                             </div>
-                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs sm:text-sm font-semibold ring-1 ${getStatusBadge(a.status)}`}>
+                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-base font-semibold ring-1 ${getStatusBadge(a.status)}`}>
                               {getStatusLabel(a.status)}
                             </span>
                           </div>
-                          <div className="mt-3 text-xs sm:text-sm text-gray-700">
+                          <div className="mt-3 text-sm sm:text-base text-gray-700">
                             Accéder à cette candidature
                           </div>
                         </Link>

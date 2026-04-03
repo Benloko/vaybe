@@ -75,11 +75,11 @@ export default function CandidateRegister() {
   }, [next, reason]);
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="w-full sm:max-w-lg sm:mx-auto pb-10">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-sm sm:text-sm text-gray-500">Espace candidat</div>
-          <div className="text-2xl sm:text-xl font-extrabold text-gray-900">Inscription</div>
+          <div className="text-3xl sm:text-2xl font-extrabold text-gray-900">Inscription</div>
         </div>
         <Link
           to={loginHref}
@@ -89,16 +89,16 @@ export default function CandidateRegister() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-        <div className="px-4 py-4 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <div className="text-sm sm:text-sm text-white/90">Créer un compte</div>
-          <h1 className="text-2xl sm:text-2xl font-extrabold">Candidat</h1>
-          <p className="mt-1 text-sm sm:text-base text-white/90">Vous pouvez créer un compte avant de postuler.</p>
+      <div className="bg-white rounded-2xl shadow-md border overflow-hidden">
+        <div className="px-5 py-6 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <div className="text-base sm:text-sm text-white/90">Créer un compte</div>
+          <h1 className="text-3xl sm:text-2xl font-extrabold">Candidat</h1>
+          <p className="mt-2 text-base sm:text-base text-white/90">Vous pouvez créer un compte avant de postuler.</p>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-4">
+        <div className="p-5 sm:p-6 space-y-4">
           {error && (
-            <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>
+            <div className="p-3.5 rounded-xl border border-red-200 bg-red-50 text-red-800 text-base sm:text-sm">{error}</div>
           )}
 
           <div className="text-base sm:text-sm text-gray-500">Étape {step} sur 2</div>
@@ -106,32 +106,32 @@ export default function CandidateRegister() {
           {step === 1 ? (
             <>
               <div>
-                <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-1">Nom complet *</label>
+                <label className="block text-base sm:text-sm font-semibold text-gray-700 mb-1">Nom complet *</label>
                 <input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base sm:text-sm"
+                  className="w-full px-4 py-3.5 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base"
                   placeholder="Votre nom complet"
                 />
               </div>
 
               <div>
-                <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-1">Email *</label>
+                <label className="block text-base sm:text-sm font-semibold text-gray-700 mb-1">Email *</label>
                 <input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
-                  className="w-full px-4 py-3 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base sm:text-sm"
+                  className="w-full px-4 py-3.5 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base"
                   placeholder="vous@exemple.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-1">Téléphone *</label>
+                <label className="block text-base sm:text-sm font-semibold text-gray-700 mb-1">Téléphone *</label>
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-3 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base sm:text-sm"
+                  className="w-full px-4 py-3.5 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base"
                   placeholder="Votre numéro"
                 />
               </div>
@@ -147,7 +147,7 @@ export default function CandidateRegister() {
                     setError('');
                     setStep(2);
                   }}
-                  className="w-full sm:w-auto px-4 py-3 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-sm font-semibold disabled:opacity-60 whitespace-nowrap"
+                  className="w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold disabled:opacity-60 whitespace-nowrap"
                 >
                   Suivant
                 </button>
@@ -156,12 +156,12 @@ export default function CandidateRegister() {
           ) : (
             <>
               <div>
-                <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-1">Mot de passe *</label>
+                <label className="block text-base sm:text-sm font-semibold text-gray-700 mb-1">Mot de passe *</label>
                 <input
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   type="password"
-                  className="w-full px-4 py-3 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base sm:text-sm"
+                  className="w-full px-4 py-3.5 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base"
                   placeholder="Minimum 6 caractères"
                 />
                 {password.trim() !== '' && password.trim().length < 6 && (
@@ -170,12 +170,12 @@ export default function CandidateRegister() {
               </div>
 
               <div>
-                <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-1">Confirmer le mot de passe *</label>
+                <label className="block text-base sm:text-sm font-semibold text-gray-700 mb-1">Confirmer le mot de passe *</label>
                 <input
                   value={passwordConfirmation}
                   onChange={(e) => setPasswordConfirmation(e.target.value)}
                   type="password"
-                  className="w-full px-4 py-3 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base sm:text-sm"
+                  className="w-full px-4 py-3.5 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base"
                   placeholder="Répétez le mot de passe"
                 />
                 {passwordConfirmation.trim() !== '' && password !== passwordConfirmation && (
@@ -191,7 +191,7 @@ export default function CandidateRegister() {
                     setError('');
                     setStep(1);
                   }}
-                  className="w-full sm:w-auto px-4 py-3 sm:py-2.5 rounded-xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold disabled:opacity-60 whitespace-nowrap"
+                  className="w-full sm:w-auto px-4 py-3.5 sm:py-2.5 rounded-xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold disabled:opacity-60 whitespace-nowrap"
                 >
                   Retour
                 </button>
@@ -200,7 +200,7 @@ export default function CandidateRegister() {
                   type="button"
                   disabled={busy || !canSubmit}
                   onClick={submit}
-                  className="w-full sm:w-auto px-4 py-3 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-sm font-semibold disabled:opacity-60 whitespace-nowrap"
+                  className="w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold disabled:opacity-60 whitespace-nowrap"
                 >
                   Créer
                 </button>

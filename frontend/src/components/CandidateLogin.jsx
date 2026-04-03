@@ -59,11 +59,11 @@ export default function CandidateLogin() {
   };
 
   return (
-    <div className="w-full sm:max-w-lg sm:mx-auto">
+    <div className="w-full sm:max-w-lg sm:mx-auto pb-10">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-sm sm:text-sm text-gray-500">Espace candidat</div>
-          <div className="text-2xl sm:text-xl font-extrabold text-gray-900">Connexion</div>
+          <div className="text-3xl sm:text-2xl font-extrabold text-gray-900">Connexion</div>
         </div>
         <Link
           to="/"
@@ -73,61 +73,61 @@ export default function CandidateLogin() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-        <div className="px-4 py-4 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <div className="text-sm sm:text-sm text-white/90">Accéder à votre compte</div>
-          <h1 className="text-2xl sm:text-2xl font-extrabold">Candidat</h1>
-          <p className="mt-1 text-sm sm:text-base text-white/90">Email ou téléphone + mot de passe.</p>
+      <div className="bg-white rounded-2xl shadow-md border overflow-hidden">
+        <div className="px-5 py-6 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <div className="text-base sm:text-sm text-white/90">Accéder à votre compte</div>
+          <h1 className="text-3xl sm:text-2xl font-extrabold">Candidat</h1>
+          <p className="mt-2 text-base sm:text-base text-white/90">Email ou téléphone + mot de passe.</p>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-4">
+        <div className="p-5 sm:p-6 space-y-4">
           {reason === 'apply' && !error && (
-            <div className="p-3 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-sm">
+            <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-base sm:text-sm">
               Connectez-vous pour postuler à cette offre.
             </div>
           )}
           {created && !error && (
-            <div className="p-3 rounded-xl border border-green-200 bg-green-50 text-green-800 text-sm">
+            <div className="p-3.5 rounded-xl border border-green-200 bg-green-50 text-green-800 text-base sm:text-sm">
               Compte créé. Connectez-vous pour continuer.
             </div>
           )}
           {error && (
-            <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>
+            <div className="p-3.5 rounded-xl border border-red-200 bg-red-50 text-red-800 text-base sm:text-sm">{error}</div>
           )}
 
           <div>
-            <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-1">Email ou téléphone</label>
+            <label className="block text-base sm:text-sm font-semibold text-gray-700 mb-1">Email ou téléphone</label>
             <input
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full px-4 py-3 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base sm:text-sm"
+              className="w-full px-4 py-3.5 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base"
               placeholder="vous@exemple.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm sm:text-sm font-semibold text-gray-700 mb-1">Mot de passe</label>
+            <label className="block text-base sm:text-sm font-semibold text-gray-700 mb-1">Mot de passe</label>
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
-              className="w-full px-4 py-3 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base sm:text-sm"
+              className="w-full px-4 py-3.5 sm:px-4 sm:py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-base"
               placeholder="Votre mot de passe"
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
             <Link
               to={`/inscription${next || reason ? `?${new URLSearchParams({ ...(next ? { next } : {}), ...(reason ? { reason } : {}) }).toString()}` : ''}`}
-              className="text-base sm:text-sm font-semibold text-blue-700 hover:underline"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 rounded-xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold text-gray-900"
             >
-              Pas de compte ? Inscription
+              Créer un compte
             </Link>
             <button
               type="button"
               disabled={busy || !canSubmit}
               onClick={submit}
-              className="w-full sm:w-auto px-4 py-3 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-sm font-semibold disabled:opacity-60 whitespace-nowrap"
+              className="w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold disabled:opacity-60 whitespace-nowrap"
             >
               Se connecter
             </button>

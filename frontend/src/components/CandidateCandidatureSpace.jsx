@@ -131,21 +131,21 @@ export default function CandidateCandidatureSpace() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto px-3 sm:px-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm text-gray-500">Espace candidat</div>
-          <div className="text-xl font-extrabold text-gray-900">Candidature</div>
+          <div className="text-base sm:text-sm text-gray-500">Espace candidat</div>
+          <div className="text-2xl sm:text-xl font-extrabold text-gray-900">Candidature</div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link to="/" className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-50 text-sm font-semibold">
+          <Link to="/" className="px-4 py-3 sm:py-2 rounded-2xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold">
             Opportunités
           </Link>
           <button
             type="button"
             onClick={logout}
-            className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-50 text-sm font-semibold"
+            className="px-4 py-3 sm:py-2 rounded-2xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold"
           >
             Déconnexion
           </button>
@@ -153,23 +153,23 @@ export default function CandidateCandidatureSpace() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-        <div className="p-6 border-b">
-          <div className="text-sm text-gray-500">Mes candidatures</div>
-          <div className="text-lg font-extrabold text-gray-900">Suivi</div>
+        <div className="p-5 sm:p-6 border-b">
+          <div className="text-base sm:text-sm text-gray-500">Mes candidatures</div>
+          <div className="text-xl sm:text-lg font-extrabold text-gray-900">Suivi</div>
         </div>
 
-        <div className="p-6">
-          {loading && <div className="text-sm text-gray-600">Chargement…</div>}
-          {error && <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>}
+        <div className="p-5 sm:p-6">
+          {loading && <div className="text-base sm:text-sm text-gray-600">Chargement…</div>}
+          {error && <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-base sm:text-sm">{error}</div>}
 
           {!loading && !error && myApplications.length === 0 && (
             <div className="p-6 rounded-2xl border bg-gray-50">
-              <div className="text-sm text-gray-600">Aucune candidature pour le moment.</div>
-              <div className="mt-2 text-sm text-gray-600">Choisissez une opportunité pour postuler.</div>
+              <div className="text-base sm:text-sm text-gray-600">Aucune candidature pour le moment.</div>
+              <div className="mt-2 text-base sm:text-sm text-gray-600">Choisissez une opportunité pour postuler.</div>
               <div className="mt-4">
                 <Link
                   to="/"
-                  className="inline-flex px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+                  className="inline-flex px-5 py-3 sm:px-4 sm:py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-sm font-semibold"
                 >
                   Voir les opportunités
                 </Link>
@@ -179,7 +179,7 @@ export default function CandidateCandidatureSpace() {
 
           {!loading && !error && myApplications.length > 0 && (
             <div className="p-6 rounded-2xl border bg-gray-50">
-              <div className="text-sm text-gray-600">Ouverture de votre candidature…</div>
+              <div className="text-base sm:text-sm text-gray-600">Ouverture de votre candidature…</div>
             </div>
           )}
         </div>

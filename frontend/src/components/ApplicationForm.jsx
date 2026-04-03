@@ -5,7 +5,7 @@ import { applicationService } from '../services/api';
 const steps = [
   { key: 'infos', title: 'Vos infos', subtitle: 'Quelques détails pour vous recontacter.' },
   { key: 'motivation', title: 'Votre motivation', subtitle: 'Dites-nous ce qui vous anime.' },
-  { key: 'liens', title: 'Liens & pièces', subtitle: 'Optionnel, mais ça aide beaucoup.' },
+  { key: 'liens', title: 'Liens & pièces', subtitle: 'CV obligatoire (PDF). Portfolio optionnel.' },
 ];
 
 function isValidEmail(email) {
@@ -69,6 +69,7 @@ export default function ApplicationForm() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitArmed, setSubmitArmed] = useState(false);
+  const [cvFile, setCvFile] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -150,7 +151,12 @@ export default function ApplicationForm() {
       else if (message.length < 10) nextErrors.message = 'Ajoutez un peu de contexte (min. 10 caractères).';
     }
 
-    // Step 2: URLs optionnelles — le backend fera la validation finale.
+    // Step 2: CV obligatoire (PDF). Portfolio optionnel.
+    if (currentStep === 2) {
+      if (!cvFile) nextErrors.cv = 'Votre CV (PDF) est obligatoire.';
+      if (cvFile && cvFile.type && cvFile.type !== 'application/pdf') nextErrors.cv = 'Le CV doit être un PDF.';
+      if (cvFile && cvFile.size && cvFile.size > 10 * 1024 * 1024) nextErrors.cv = 'Le CV est trop volumineux (max 10 Mo).';
+    }
     return nextErrors;
   };
 
@@ -210,7 +216,6 @@ export default function ApplicationForm() {
 
     // Dernière étape: on envoie uniquement si l'utilisateur a explicitement cliqué sur le bouton.
     if (!submitArmed) {
-      setError('Cliquez sur « Envoyer ma candidature » pour finaliser.');
       return;
     }
 
@@ -223,15 +228,21 @@ export default function ApplicationForm() {
     }
 
     try {
-      const payload = await applicationService.submitApplication({
-        ...formData,
-        offer_id: Number(formData.offer_id),
-        nom: formData.nom.trim(),
-        email: formData.email.trim(),
-        telephone: String(formData.telephone || '').trim(),
-        ville: String(formData.ville || '').trim(),
-        message: formData.message.trim(),
-      });
+      const fd = new FormData();
+      fd.set('offer_id', String(Number(formData.offer_id)));
+      fd.set('nom', formData.nom.trim());
+      fd.set('email', formData.email.trim());
+      fd.set('telephone', String(formData.telephone || '').trim());
+      fd.set('ville', String(formData.ville || '').trim());
+      fd.set('role', String(formData.role || ''));
+      fd.set('message', formData.message.trim());
+
+      const portfolio = String(formData.portfolio || '').trim();
+      if (portfolio) fd.set('portfolio', portfolio);
+
+      if (cvFile) fd.set('cv', cvFile);
+
+      const payload = await applicationService.submitApplication(fd);
 
       setSubmitArmed(false);
       const createdId = payload?.data?.id;
@@ -478,16 +489,21 @@ export default function ApplicationForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">CV (URL)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">CV (PDF) <span className="text-red-600">*</span></label>
                   <input
-                    type="url"
-                    name="cv"
-                    value={formData.cv}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://.../cv.pdf"
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                      setCvFile(file);
+                      setFieldErrors((prev) => ({ ...prev, cv: undefined }));
+                    }}
+                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      fieldErrors.cv ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
-                  <div className="mt-1 text-xs text-gray-500">Lien Drive, Notion, PDF hébergé…</div>
+                  <div className="mt-1 text-xs text-gray-500">Importez votre CV depuis votre appareil (PDF, max 10 Mo).</div>
+                  {fieldErrors.cv && <div className="mt-1 text-sm text-red-700">{fieldErrors.cv}</div>}
                 </div>
 
                 <div className="sm:col-span-2 p-4 rounded-xl bg-gray-50 border border-gray-200">
@@ -497,7 +513,7 @@ export default function ApplicationForm() {
                     <div><span className="text-gray-500">Email :</span> {formData.email || '—'}</div>
                     <div><span className="text-gray-500">Rôle :</span> {formData.role === 'dev' ? 'Développeur' : 'Designer'}</div>
                     <div><span className="text-gray-500">Portfolio :</span> {formData.portfolio || '—'}</div>
-                    <div><span className="text-gray-500">CV :</span> {formData.cv || '—'}</div>
+                    <div><span className="text-gray-500">CV :</span> {cvFile ? cvFile.name : '—'}</div>
                     <div className="sm:col-span-2"><span className="text-gray-500">Message :</span> {formData.message ? 'OK' : '—'}</div>
                   </div>
                 </div>
