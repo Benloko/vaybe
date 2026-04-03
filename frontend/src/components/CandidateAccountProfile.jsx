@@ -86,7 +86,7 @@ export default function CandidateAccountProfile() {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <div className="text-base sm:text-sm text-gray-500">Espace candidat</div>
-          <div className="text-2xl sm:text-xl font-extrabold text-gray-900">Profil</div>
+          <div className="text-xl sm:text-xl font-extrabold text-gray-900">Profil</div>
         </div>
         <Link to="/" className="px-4 py-3 sm:py-2 rounded-2xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold">
           Opportunités
@@ -95,7 +95,7 @@ export default function CandidateAccountProfile() {
 
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         <div className="p-5 sm:p-6 flex items-center gap-4 border-b">
-          <div className="w-14 h-14 sm:w-12 sm:h-12 rounded-2xl bg-blue-600 text-white text-lg sm:text-base font-extrabold flex items-center justify-center">
+          <div className="w-14 h-14 sm:w-12 sm:h-12 rounded-2xl bg-blue-600 text-white text-base sm:text-base font-extrabold flex items-center justify-center">
             {initials}
           </div>
           <div>
@@ -107,12 +107,12 @@ export default function CandidateAccountProfile() {
         <div className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="p-4 rounded-2xl border bg-gray-50">
             <div className="text-sm uppercase tracking-wide text-gray-500">Email</div>
-            <div className="mt-1 text-base sm:text-sm font-semibold text-gray-900 break-all">{email || '-'}</div>
+            <div className="mt-1 text-sm sm:text-sm font-semibold text-gray-900 break-all">{email || '-'}</div>
           </div>
 
           <div className="p-4 rounded-2xl border bg-gray-50">
             <div className="text-sm uppercase tracking-wide text-gray-500">Téléphone</div>
-            <div className="mt-1 text-base sm:text-sm font-semibold text-gray-900">{phone || '-'}</div>
+            <div className="mt-1 text-sm sm:text-sm font-semibold text-gray-900">{phone || '-'}</div>
           </div>
         </div>
 

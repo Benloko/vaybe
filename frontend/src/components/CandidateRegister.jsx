@@ -137,9 +137,6 @@ export default function CandidateRegister() {
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <Link to={loginHref} className="text-sm font-semibold text-blue-700 hover:underline">
-                  Déjà un compte ? Connexion
-                </Link>
                 <button
                   type="button"
                   disabled={busy || !step1Ready}
@@ -147,10 +144,14 @@ export default function CandidateRegister() {
                     setError('');
                     setStep(2);
                   }}
-                  className="w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold disabled:opacity-60 whitespace-nowrap"
+                  className="order-1 sm:order-2 w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold disabled:opacity-60 whitespace-nowrap"
                 >
                   Suivant
                 </button>
+
+                <Link to={loginHref} className="order-2 sm:order-1 text-sm font-semibold text-blue-700 hover:underline">
+                  Déjà un compte ? Connexion
+                </Link>
               </div>
             </>
           ) : (

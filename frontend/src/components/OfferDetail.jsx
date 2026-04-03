@@ -8,6 +8,8 @@ export default function OfferDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [offer, setOffer] = useState(null);
+  const [alreadyAppliedOpen, setAlreadyAppliedOpen] = useState(false);
+  const [checkingAlreadyApplied, setCheckingAlreadyApplied] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -60,11 +62,85 @@ export default function OfferDetail() {
       return;
     }
 
-    navigate(next);
+    let email = '';
+    try {
+      email = localStorage.getItem('candidateAccountEmail') || '';
+    } catch {
+      email = '';
+    }
+
+    // Si on n'a pas l'email, on ne peut pas pré-vérifier côté front.
+    if (!email) {
+      navigate(next);
+      return;
+    }
+
+    setCheckingAlreadyApplied(true);
+    (async () => {
+      try {
+        const payload = await applicationService.getCandidateApplicationsByEmail(email);
+        const list = Array.isArray(payload?.data) ? payload.data : [];
+        const exists = list.some((a) => String(a?.offer_id || '') === String(offerId));
+        if (exists) {
+          setAlreadyAppliedOpen(true);
+          return;
+        }
+        navigate(next);
+      } catch {
+        // En cas d'erreur réseau, on laisse l'utilisateur continuer (le backend bloquera au besoin).
+        navigate(next);
+      } finally {
+        setCheckingAlreadyApplied(false);
+      }
+    })();
   };
 
   return (
     <div className="w-full sm:max-w-3xl sm:mx-auto pb-10">
+      {alreadyAppliedOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div
+            className="w-full max-w-md rounded-2xl bg-white border shadow-sm overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Candidature déjà envoyée"
+          >
+            <div className="px-4 py-3 border-b flex items-center justify-between gap-3">
+              <div className="text-sm font-extrabold text-gray-900">Candidature déjà envoyée</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAlreadyAppliedOpen(false);
+                }}
+                className="h-10 w-10 rounded-xl border bg-white hover:bg-gray-50 text-gray-700 font-extrabold inline-flex items-center justify-center"
+                aria-label="Fermer"
+                title="Fermer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="text-sm text-gray-700">
+                Vous avez déjà postulé à cette opportunité. Pour des raisons d’équité, une seule candidature par offre est possible.
+                <span className="block mt-2">Merci de votre compréhension.</span>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAlreadyAppliedOpen(false);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold"
+                >
+                  D’accord
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-sm text-gray-500">Carrières</div>
@@ -121,7 +197,8 @@ export default function OfferDetail() {
                   <button
                     type="button"
                     onClick={onApply}
-                    className="w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold"
+                    disabled={checkingAlreadyApplied}
+                    className="w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold disabled:opacity-70"
                   >
                     Postuler
                   </button>

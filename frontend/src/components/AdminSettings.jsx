@@ -613,7 +613,20 @@ export default function AdminSettings() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => applicationService.clearAdminSession()}
+                  onClick={() => {
+                    applicationService.clearAdminSession();
+                    try {
+                      applicationService.clearCandidateLogoutContext();
+                    } catch {
+                      // ignore
+                    }
+
+                    try {
+                      window.location.replace('/onboarding');
+                    } catch {
+                      // ignore
+                    }
+                  }}
                   className="shrink-0 inline-flex items-center justify-center rounded-xl px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-sm font-semibold"
                 >
                   Déconnexion

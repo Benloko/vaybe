@@ -10,6 +10,7 @@ import CandidateMessenger from './components/CandidateMessenger';
 import Opportunities from './components/Opportunities';
 import ApplicationSubmissionDetail from './components/ApplicationSubmissionDetail';
 import OfferDetail from './components/OfferDetail';
+import Onboarding from './components/Onboarding';
 import AdminOffers from './components/AdminOffers';
 import AdminSettings from './components/AdminSettings';
 import AdminStats from './components/AdminStats';
@@ -99,6 +100,7 @@ function AppLayout() {
   const isAdminRoute = location.pathname.startsWith('/admin');
   const showAdminNav = isAdminRoute && Boolean(adminToken);
   const isCandidateMessengerRoute = location.pathname.startsWith('/messages/') || location.pathname.startsWith('/notifications/');
+  const isOnboardingRoute = location.pathname.startsWith('/onboarding');
   const isCandidateProfileRoute =
     location.pathname.startsWith('/profil') ||
     location.pathname.startsWith('/candidature') ||
@@ -185,7 +187,8 @@ function AppLayout() {
         const nextLastId = localStorage.getItem('lastApplicationId');
         setLastApplicationId(nextLastId);
         setLastApplicationStatus(localStorage.getItem('lastApplicationStatus'));
-        setCandidateAccountId(localStorage.getItem('candidateAccountId'));
+        const nextCandidateId = localStorage.getItem('candidateAccountId');
+        setCandidateAccountId(nextCandidateId);
         setCandidateAccountEmail(localStorage.getItem('candidateAccountEmail'));
         setAdminToken(localStorage.getItem('adminToken'));
 
@@ -279,7 +282,18 @@ function AppLayout() {
 
   const adminLogout = () => {
     applicationService.clearAdminSession();
-    navigate('/admin/connexion', { replace: true });
+    // Empêche de retomber sur une session candidat encore stockée sur l'appareil.
+    // Objectif UX: après déconnexion admin, revenir en mode « invité » (onboarding).
+    try {
+      applicationService.clearCandidateLogoutContext();
+    } catch {
+      // ignore
+    }
+    try {
+      window.location.replace('/onboarding');
+    } catch {
+      navigate('/onboarding', { replace: true });
+    }
   };
 
   return (
@@ -290,29 +304,32 @@ function AppLayout() {
           : 'min-h-[100dvh] bg-gray-100 flex flex-col'
       }
     >
-      <header className="sticky top-0 z-50 bg-white border-b">
-        <div
-          className={`max-w-6xl mx-auto pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4 py-3 sm:py-4 flex items-center gap-3 ${
-            isAdminRoute ? 'flex-col sm:flex-row sm:justify-between w-full' : 'justify-between'
-          }`}
-        >
-          <div className="text-xl sm:text-lg font-extrabold tracking-tight text-gray-900 leading-none whitespace-nowrap">
-            Vaybe
-            <span className="hidden sm:inline"> • {isAdminRoute ? 'Admin' : 'Candidatures'}</span>
-          </div>
-          <nav
-            className={
-              isAdminRoute
-                ? 'flex items-center gap-2 sm:justify-end w-full sm:w-auto'
-                : 'flex items-center gap-2 flex-1 min-w-0 justify-end'
-            }
+      {!isOnboardingRoute && (
+        <header className="sticky top-0 z-50 bg-white border-b">
+          <div
+            className="max-w-6xl mx-auto pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-3 w-full"
           >
-            {!isAdminRoute ? (
-              <div className="flex flex-nowrap gap-1.5 sm:gap-2 sm:justify-end overflow-x-auto [-webkit-overflow-scrolling:touch]">
+            <div
+              className={`shrink-0 font-extrabold tracking-tight text-gray-900 leading-none whitespace-nowrap ${
+                isAdminRoute ? 'text-lg sm:text-lg' : 'text-xl sm:text-lg'
+              }`}
+            >
+              Vaybe{isAdminRoute ? <span className="text-gray-500"> (Admin)</span> : <></>}
+              {!isAdminRoute ? <span className="hidden sm:inline"> • Candidatures</span> : <></>}
+            </div>
+            <nav
+              className={
+                isAdminRoute
+                  ? 'flex items-center gap-2 flex-1 min-w-0 justify-end'
+                  : 'flex items-center gap-2 flex-1 min-w-0 justify-end'
+              }
+            >
+              {!isAdminRoute ? (
+                <div className="flex flex-nowrap gap-1.5 sm:gap-2 sm:justify-end overflow-x-auto no-scrollbar [-webkit-overflow-scrolling:touch] pb-1">
                 <NavLink
                   to="/"
                   className={({ isActive }) =>
-                    `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-4 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                    `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-3 py-2.5 sm:px-4 sm:py-2 rounded-xl border text-sm sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                       isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                     }`
                   }
@@ -325,7 +342,7 @@ function AppLayout() {
                   <NavLink
                     to="/candidature"
                     className={({ isActive }) =>
-                      `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-4 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                      `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-3 py-2.5 sm:px-4 sm:py-2 rounded-xl border text-sm sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                         isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                       }`
                     }
@@ -338,7 +355,7 @@ function AppLayout() {
                   <NavLink
                     to={lastApplicationId ? `/notifications/${lastApplicationId}` : '/candidature'}
                     className={({ isActive }) =>
-                      `shrink-0 min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-3 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                      `shrink-0 min-h-[44px] sm:min-h-0 px-3 py-2.5 sm:px-3 sm:py-2 rounded-xl border text-sm sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                         isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                       }`
                     }
@@ -367,7 +384,7 @@ function AppLayout() {
                     <NavLink
                       to="/connexion"
                       className={({ isActive }) =>
-                        `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-4 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                        `shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-3 py-2.5 sm:px-4 sm:py-2 rounded-xl border text-sm sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                           isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                         }`
                       }
@@ -383,23 +400,37 @@ function AppLayout() {
                   <NavLink
                     to={`/messages/${lastApplicationId}`}
                     className={({ isActive }) =>
-                      `relative shrink-0 whitespace-nowrap min-h-[44px] sm:min-h-0 px-4 py-3 sm:px-4 sm:py-2 rounded-xl border text-base sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                      `relative shrink-0 min-h-[44px] sm:min-h-0 px-3 py-2.5 sm:px-4 sm:py-2 rounded-xl border text-sm sm:text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                         isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
                       }`
                     }
+                    aria-label="Messages"
+                    title="Messages"
                   >
-                    Messages
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-6 w-6 sm:h-5 sm:w-5"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                    </svg>
                     {candidateUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-extrabold ring-2 ring-white px-1">
+                      <span className="absolute left-2 -bottom-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-extrabold ring-2 ring-white px-1 animate-pulse">
                         {candidateUnreadCount > 9 ? '9+' : String(candidateUnreadCount)}
                       </span>
                     )}
                   </NavLink>
                 )}
-              </div>
-            ) : showAdminNav ? (
-              <div className="flex items-center gap-2 w-full">
-                <div className="flex-1 min-w-0 flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch]">
+                </div>
+              ) : showAdminNav ? (
+                <div className="flex items-center gap-2 w-full">
+                  <div className="flex-1 min-w-0 flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar [-webkit-overflow-scrolling:touch]">
                   <NavLink
                     to="/admin"
                     className={({ isActive }) =>
@@ -424,27 +455,56 @@ function AppLayout() {
                   <NavLink
                     to="/admin/messages"
                     className={({ isActive }) =>
-                      `shrink-0 whitespace-nowrap px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                      `shrink-0 inline-flex items-center justify-center px-3 py-2 sm:px-3 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                         isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
                       }`
                     }
+                    aria-label="Messagerie"
+                    title="Messagerie"
                   >
-                    Messages
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                    </svg>
                   </NavLink>
-                </div>
+                  </div>
 
                 {adminToken && (
                   <div ref={adminMenuRef} className="relative shrink-0">
                     <button
                       type="button"
                       onClick={() => setAdminMenuOpen((v) => !v)}
-                      className={`whitespace-nowrap px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition ${
-                        adminMenuOpen ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-100'
+                      className={`inline-flex items-center justify-center rounded-xl p-2 border border-gray-200 bg-white hover:bg-gray-50 transition ${
+                        adminMenuOpen ? 'ring-2 ring-blue-200' : ''
                       } focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white`}
                       aria-haspopup="menu"
                       aria-expanded={adminMenuOpen ? 'true' : 'false'}
+                      aria-label="Paramètres admin"
+                      title="Paramètres"
                     >
-                      Admin
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5 text-gray-700"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 3.4 17l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.04 3.4l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 9 2.28V2a2 2 0 0 1 4 0v.09c0 .66.39 1.26 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06A2 2 0 1 1 20.6 6l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01c.26.61.85 1 1.51 1H22a2 2 0 0 1 0 4h-.09c-.66 0-1.26.39-1.51 1Z" />
+                      </svg>
                     </button>
 
                     {adminMenuOpen && (
@@ -502,18 +562,21 @@ function AppLayout() {
                     )}
                   </div>
                 )}
-              </div>
-            ) : (
-              <></>
-            )}
-          </nav>
-        </div>
-      </header>
+                </div>
+              ) : (
+                <></>
+              )}
+            </nav>
+          </div>
+        </header>
+      )}
 
       <main
         className={
           isCandidateMessengerRoute
             ? 'max-w-6xl mx-auto w-full flex-1 min-h-0 px-2 sm:px-4 py-2 sm:py-6 flex flex-col overflow-hidden'
+            : isOnboardingRoute
+              ? 'w-full flex-1 min-h-0 flex flex-col'
             : isCandidateProfileRoute
               ? 'w-full flex-1 min-h-0 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-6 py-4 sm:py-10 flex flex-col'
               : 'max-w-6xl mx-auto w-full flex-1 min-h-0 px-3 sm:px-4 py-4 sm:py-10 flex flex-col'
@@ -521,9 +584,20 @@ function AppLayout() {
       >
         <div className="flex-1 min-h-0 flex flex-col">
           <Routes>
-            <Route path="/" element={<Opportunities />} />
-            <Route path="/opportunites" element={<Opportunities />} />
-            <Route path="/opportunites/:id" element={<OfferDetail />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+
+            <Route
+              path="/"
+              element={<Opportunities />}
+            />
+            <Route
+              path="/opportunites"
+              element={<Opportunities />}
+            />
+            <Route
+              path="/opportunites/:id"
+              element={<OfferDetail />}
+            />
             <Route path="/connexion" element={<CandidateLogin />} />
             <Route path="/inscription" element={<CandidateRegister />} />
             <Route path="/profil" element={<CandidateAccountProfile />} />

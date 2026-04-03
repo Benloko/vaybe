@@ -76,16 +76,15 @@ class ApplicationController extends Controller
         $email = mb_strtolower(trim((string) ($validated['email'] ?? '')));
         $offerId = (int) ($validated['offer_id'] ?? 0);
 
-        $existingActive = Application::query()
+        $alreadyApplied = Application::query()
             ->where('offer_id', $offerId)
             ->whereRaw('lower(email) = ?', [$email])
-            ->whereIn('status', ['pending', 'approved'])
             ->exists();
 
-        if ($existingActive) {
+        if ($alreadyApplied) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vous avez déjà une candidature en cours pour cette opportunité.',
+                'message' => 'Vous avez déjà postulé à cette opportunité. Une candidature par offre est autorisée (même si elle a été rejetée).',
             ], 409);
         }
 

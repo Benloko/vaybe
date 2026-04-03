@@ -92,6 +92,9 @@ function handleAdminUnauthorized() {
   try {
     if (typeof window === 'undefined') return;
     const path = String(window.location?.pathname || '');
+    // Ne force pas une redirection vers la connexion admin si l'utilisateur n'est plus
+    // dans l'espace admin (ex: après logout vers l'onboarding).
+    if (!path.startsWith('/admin')) return;
     if (path.startsWith('/admin/connexion')) return;
     const next = encodeURIComponent(`${window.location.pathname}${window.location.search || ''}`);
     window.location.replace(`/admin/connexion?next=${next}`);

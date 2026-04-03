@@ -94,18 +94,18 @@ export default function ApplicationSubmissionDetail() {
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         <div className="px-4 py-4 sm:px-6 sm:py-6 bg-gradient-to-r from-slate-900 to-slate-700 text-white">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-2xl sm:text-3xl font-extrabold">Détails de la candidature</h1>
+            <h1 className="text-xl sm:text-2xl font-extrabold">Détails de la candidature</h1>
             {!loading && !error && application?.id ? (
               <Link
                 to={`/profil/${application.id}`}
                 onClick={activateProfile}
-                className="shrink-0 px-4 py-2.5 rounded-2xl bg-white text-slate-900 hover:bg-white/90 text-sm sm:text-base font-extrabold whitespace-nowrap"
+                className="shrink-0 px-4 py-2.5 rounded-2xl bg-white text-slate-900 hover:bg-white/90 text-sm sm:text-sm font-extrabold whitespace-nowrap"
               >
                 Accéder au profil
               </Link>
             ) : null}
           </div>
-          <p className="mt-1 text-base sm:text-lg text-white/90">Consultable, non modifiable.</p>
+          <p className="mt-1 text-sm sm:text-base text-white/90">Consultable, non modifiable.</p>
         </div>
 
         <div className="p-4 sm:p-6">
@@ -128,12 +128,12 @@ export default function ApplicationSubmissionDetail() {
                 <div>
                   <div className="text-sm text-gray-500">Candidat</div>
                   <div className="text-lg sm:text-xl font-extrabold text-gray-900 leading-snug">{application.nom}</div>
-                  <div className="mt-1 text-base sm:text-lg text-gray-600">
+                  <div className="mt-1 text-sm sm:text-base text-gray-600">
                     {application.offer_title ? application.offer_title : (application.role === 'designer' ? 'Designer' : 'Développeur')}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 sm:flex-col sm:items-end sm:gap-2">
-                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-base font-semibold ring-1 ${getStatusBadge(application.status)}`}>
+                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-sm font-semibold ring-1 ${getStatusBadge(application.status)}`}>
                     {application.status === 'approved'
                       ? '✅ Approuvée'
                       : application.status === 'rejected'
@@ -146,55 +146,55 @@ export default function ApplicationSubmissionDetail() {
               {application.status === 'approved' && (
                 <div className="rounded-2xl border p-4 sm:p-5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <div className="text-base sm:text-lg font-extrabold text-gray-900">Messages</div>
-                    <div className="text-base sm:text-lg text-gray-600">Conversation disponible car la candidature est approuvée.</div>
+                    <div className="text-sm sm:text-base font-extrabold text-gray-900">Messages</div>
+                    <div className="text-sm sm:text-base text-gray-600">Conversation disponible car la candidature est approuvée.</div>
                   </div>
                 </div>
               )}
 
               {application.status === 'rejected' && (
                 <div className="rounded-2xl border p-5 bg-rose-50 border-rose-200 text-rose-900">
-                  <div className="text-base sm:text-lg font-extrabold">Message de l’équipe</div>
-                  <div className="text-base sm:text-lg mt-1">Cette candidature a été rejetée.</div>
+                  <div className="text-sm sm:text-base font-extrabold">Message de l’équipe</div>
+                  <div className="text-sm sm:text-base mt-1">Cette candidature a été rejetée.</div>
                   {messagesError ? (
-                    <div className="text-base sm:text-lg mt-2">{messagesError}</div>
+                    <div className="text-sm sm:text-base mt-2">{messagesError}</div>
                   ) : messagesLoading ? (
-                    <div className="text-base sm:text-lg mt-2">Chargement…</div>
+                    <div className="text-sm sm:text-base mt-2">Chargement…</div>
                   ) : lastAdminMessage ? (
                     <div className="mt-3 rounded-xl border bg-white p-4">
                       <div className="text-sm text-gray-500">{formatDate(lastAdminMessage.created_at)}</div>
-                      <div className="mt-1 whitespace-pre-wrap text-gray-900 text-base sm:text-lg">{lastAdminMessage.body}</div>
+                      <div className="mt-1 whitespace-pre-wrap text-gray-900 text-sm sm:text-base">{lastAdminMessage.body}</div>
                     </div>
                   ) : (
-                    <div className="text-base sm:text-lg mt-2">Aucun message.</div>
+                    <div className="text-sm sm:text-base mt-2">Aucun message.</div>
                   )}
                 </div>
               )}
 
               <div className="rounded-2xl border p-5 bg-white">
-                <div className="text-base sm:text-lg font-extrabold text-gray-900">Informations soumises</div>
+                <div className="text-sm sm:text-base font-extrabold text-gray-900">Informations soumises</div>
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-xl border p-4">
                     <div className="text-sm text-gray-500">Email</div>
-                    <div className="text-base sm:text-lg font-semibold text-gray-900">{application.email}</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900">{application.email}</div>
                   </div>
                   <div className="rounded-xl border p-4">
                     <div className="text-sm text-gray-500">Téléphone</div>
-                    <div className="text-base sm:text-lg font-semibold text-gray-900">{application.telephone || '—'}</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900">{application.telephone || '—'}</div>
                   </div>
                   <div className="rounded-xl border p-4">
                     <div className="text-sm text-gray-500">Ville</div>
-                    <div className="text-base sm:text-lg font-semibold text-gray-900">{application.ville || '—'}</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900">{application.ville || '—'}</div>
                   </div>
                   <div className="rounded-xl border p-4">
                     <div className="text-sm text-gray-500">Score</div>
-                    <div className="text-base sm:text-lg font-semibold text-gray-900">{application.score}/4</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900">{application.score}/4</div>
                   </div>
                 </div>
 
                 <div className="mt-4 rounded-xl border p-4">
                   <div className="text-sm text-gray-500">Message</div>
-                  <div className="mt-2 whitespace-pre-wrap text-gray-900 text-base sm:text-lg">{application.message}</div>
+                  <div className="mt-2 whitespace-pre-wrap text-gray-900 text-sm sm:text-base">{application.message}</div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -205,12 +205,12 @@ export default function ApplicationSubmissionDetail() {
                         href={application.portfolio}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-1 inline-block text-blue-700 hover:underline break-all text-base sm:text-lg"
+                        className="mt-1 inline-block text-blue-700 hover:underline break-all text-sm sm:text-base"
                       >
                         {application.portfolio}
                       </a>
                     ) : (
-                      <div className="mt-1 text-gray-700 text-base sm:text-lg">Non renseigné</div>
+                      <div className="mt-1 text-gray-700 text-sm sm:text-base">Non renseigné</div>
                     )}
                   </div>
 
@@ -221,12 +221,12 @@ export default function ApplicationSubmissionDetail() {
                         href={application.cv}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-1 inline-block text-blue-700 hover:underline break-all text-base sm:text-lg"
+                        className="mt-1 inline-block text-blue-700 hover:underline break-all text-sm sm:text-base"
                       >
                         {application.cv}
                       </a>
                     ) : (
-                      <div className="mt-1 text-gray-700 text-base sm:text-lg">Non renseigné</div>
+                      <div className="mt-1 text-gray-700 text-sm sm:text-base">Non renseigné</div>
                     )}
                   </div>
                 </div>

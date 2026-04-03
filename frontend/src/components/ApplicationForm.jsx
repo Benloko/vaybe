@@ -70,6 +70,9 @@ export default function ApplicationForm() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitArmed, setSubmitArmed] = useState(false);
   const [cvFile, setCvFile] = useState(null);
+  const [alreadyAppliedOpen, setAlreadyAppliedOpen] = useState(false);
+  const [candidateAppsEmail, setCandidateAppsEmail] = useState('');
+  const [candidateApps, setCandidateApps] = useState([]);
 
   useEffect(() => {
     let alive = true;
@@ -115,6 +118,43 @@ export default function ApplicationForm() {
       alive = false;
     };
   }, [offerParam]);
+
+  // Bloque l'accès au formulaire si l'utilisateur a déjà postulé à cette offre.
+  useEffect(() => {
+    let alive = true;
+
+    async function checkAlreadyApplied() {
+      if (offersLoading) return;
+
+      const email = String(formData.email || '').trim().toLowerCase();
+      const offerId = String(formData.offer_id || '').trim();
+      if (!email || !isValidEmail(email) || !offerId) return;
+
+      try {
+        // On ne recharge la liste que si l'email a changé.
+        let list = candidateApps;
+        if (candidateAppsEmail !== email) {
+          const payload = await applicationService.getCandidateApplicationsByEmail(email);
+          if (!alive) return;
+          list = Array.isArray(payload?.data) ? payload.data : [];
+          setCandidateAppsEmail(email);
+          setCandidateApps(list);
+        }
+
+        const exists = Array.isArray(list) && list.some((a) => String(a?.offer_id || '') === offerId);
+        if (exists) {
+          setAlreadyAppliedOpen(true);
+        }
+      } catch {
+        // ignore: en cas d'erreur de vérification, le backend bloquera à l'envoi.
+      }
+    }
+
+    checkAlreadyApplied();
+    return () => {
+      alive = false;
+    };
+  }, [candidateApps, candidateAppsEmail, formData.email, formData.offer_id, offersLoading]);
 
   const progress = useMemo(() => {
     return Math.round(((step + 1) / steps.length) * 100);
@@ -207,6 +247,10 @@ export default function ApplicationForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (alreadyAppliedOpen) {
+      return;
+    }
+
     // IMPORTANT: Avant la dernière étape, on ne soumet jamais.
     // Si l'utilisateur appuie sur Entrée, on avance simplement (et on valide l'étape).
     if (step < steps.length - 1) {
@@ -268,6 +312,59 @@ export default function ApplicationForm() {
 
   return (
     <div className="max-w-3xl mx-auto">
+      {alreadyAppliedOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div
+            className="w-full max-w-md rounded-2xl bg-white border shadow-sm overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Candidature déjà envoyée"
+          >
+            <div className="px-4 py-3 border-b flex items-center justify-between gap-3">
+              <div className="text-sm font-extrabold text-gray-900">Candidature déjà envoyée</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAlreadyAppliedOpen(false);
+                  if (formData.offer_id) {
+                    navigate(`/opportunites/${String(formData.offer_id)}`);
+                  } else {
+                    navigate('/');
+                  }
+                }}
+                className="h-10 w-10 rounded-xl border bg-white hover:bg-gray-50 text-gray-700 font-extrabold inline-flex items-center justify-center"
+                aria-label="Fermer"
+                title="Fermer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="text-sm text-gray-700">
+                Vous avez déjà postulé à cette opportunité. Pour des raisons d’équité, une seule candidature par offre est possible.
+                <span className="block mt-2">Merci de votre compréhension.</span>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAlreadyAppliedOpen(false);
+                    if (formData.offer_id) {
+                      navigate(`/opportunites/${String(formData.offer_id)}`);
+                    } else {
+                      navigate('/');
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold"
+                >
+                  D’accord
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         <div className="px-6 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
           <div className="flex items-start justify-between gap-4">

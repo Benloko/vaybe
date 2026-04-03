@@ -163,18 +163,6 @@ export default function ApplicationProfile() {
       }
 
       appEmail = String(appData?.email || '').trim().toLowerCase();
-
-      const loadedId = payload?.data?.id;
-      const loadedStatus = payload?.data?.status;
-      if (loadedId) {
-        try {
-          localStorage.setItem('lastApplicationId', String(loadedId));
-          if (loadedStatus) localStorage.setItem('lastApplicationStatus', String(loadedStatus));
-          window.dispatchEvent(new Event('lastApplicationIdChanged'));
-        } catch {
-          // ignore
-        }
-      }
     } catch (err) {
       if (!alive()) return;
       setError(err?.message || 'Impossible de charger votre candidature.');
@@ -474,7 +462,7 @@ export default function ApplicationProfile() {
 
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6">
+    <div className="w-full">
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         <div className="h-20 sm:h-28 bg-gradient-to-r from-emerald-600 to-teal-600" />
 
@@ -508,7 +496,7 @@ export default function ApplicationProfile() {
                       <button
                         type="button"
                         onClick={openAvatarModal}
-                        className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-white ring-4 ring-white overflow-hidden shadow-sm border flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-white ring-4 ring-white overflow-hidden shadow-sm border flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                         aria-label="Voir la photo de profil"
                         title="Voir"
                       >
@@ -516,7 +504,7 @@ export default function ApplicationProfile() {
                       </button>
                     ) : (
                       <div
-                        className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-white ring-4 ring-white overflow-hidden shadow-sm border flex items-center justify-center"
+                        className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-white ring-4 ring-white overflow-hidden shadow-sm border flex items-center justify-center"
                         aria-label="Photo de profil"
                       >
                         <div className="h-full w-full flex items-center justify-center bg-gray-100 text-gray-600 font-extrabold text-lg sm:text-xl">
@@ -529,7 +517,7 @@ export default function ApplicationProfile() {
                       type="button"
                       onClick={onPickAvatar}
                       disabled={avatarSaving}
-                      className="-ml-1 h-9 w-9 sm:h-10 sm:w-10 rounded-full border bg-white hover:bg-gray-50 text-gray-700 font-extrabold flex items-center justify-center disabled:opacity-60"
+                      className="-ml-1 h-10 w-10 sm:h-11 sm:w-11 rounded-full border bg-white hover:bg-gray-50 text-gray-700 font-extrabold flex items-center justify-center disabled:opacity-60"
                       aria-label="Modifier la photo de profil"
                       title="Modifier"
                     >
@@ -553,9 +541,9 @@ export default function ApplicationProfile() {
 
                 <div className="flex-1">
                   <div className="text-sm sm:text-base text-gray-600">Profil</div>
-                  <h1 className="text-xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{application.nom}</h1>
+                  <h1 className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight">{application.nom}</h1>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-base font-semibold ring-1 ${getStatusBadge(application.status)}`}>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-sm font-semibold ring-1 ${getStatusBadge(application.status)}`}>
                       {currentStatusLabel}
                     </span>
                     {currentOfferTitle && (
@@ -618,7 +606,7 @@ export default function ApplicationProfile() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('infos')}
-                  className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-semibold border ${
+                  className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-sm font-semibold border ${
                     activeTab === 'infos' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-50'
                   }`}
                 >
@@ -627,7 +615,7 @@ export default function ApplicationProfile() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('candidatures')}
-                  className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-semibold border ${
+                  className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-sm font-semibold border ${
                     activeTab === 'candidatures' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-50'
                   }`}
                 >
@@ -638,9 +626,9 @@ export default function ApplicationProfile() {
               {activeTab === 'infos' && (
                 <div className="mt-5 space-y-5">
                   <div className="rounded-2xl border p-4 sm:p-5 bg-white">
-                    <div className="text-base sm:text-lg font-extrabold text-gray-900">Informations</div>
+                    <div className="text-sm sm:text-base font-extrabold text-gray-900">Informations</div>
                     {(currentOfferTitle || currentRoleLabel) && (
-                      <div className="mt-2 text-base sm:text-lg text-gray-700">
+                      <div className="mt-2 text-sm sm:text-base text-gray-700">
                         Vous consultez votre candidature{currentOfferTitle ? ` pour l’offre “${currentOfferTitle}”` : ''}
                         {currentRoleLabel ? ` (${currentRoleLabel}).` : '.'}
                       </div>
@@ -649,14 +637,14 @@ export default function ApplicationProfile() {
                       {currentOfferTitle && (
                         <div className="rounded-xl border p-3 sm:p-4">
                           <div className="text-sm text-gray-500">Offre</div>
-                          <div className="text-base sm:text-lg font-semibold text-gray-900">{currentOfferTitle}</div>
+                          <div className="text-sm sm:text-base font-semibold text-gray-900">{currentOfferTitle}</div>
                         </div>
                       )}
 
                       {currentRoleLabel && (
                         <div className="rounded-xl border p-3 sm:p-4">
                           <div className="text-sm text-gray-500">Type</div>
-                          <div className="text-base sm:text-lg font-semibold text-gray-900">{currentRoleLabel}</div>
+                          <div className="text-sm sm:text-base font-semibold text-gray-900">{currentRoleLabel}</div>
                         </div>
                       )}
 
@@ -880,7 +868,7 @@ export default function ApplicationProfile() {
                 <div className="mt-5 space-y-4">
                   <div className="rounded-2xl border p-4 sm:p-5 bg-white">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-base sm:text-lg font-extrabold text-gray-900">Toutes mes candidatures</div>
+                      <div className="text-sm sm:text-base font-extrabold text-gray-900">Toutes mes candidatures</div>
                       <div className="relative" ref={myAppsFilterRef}>
                         <button
                           type="button"
@@ -966,16 +954,16 @@ export default function ApplicationProfile() {
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <div className="text-base sm:text-lg font-extrabold text-gray-900 leading-snug">{a.offer_title || 'Candidature'}</div>
+                              <div className="text-sm sm:text-base font-extrabold text-gray-900 leading-snug">{a.offer_title || 'Candidature'}</div>
                               <div className="mt-1 text-sm sm:text-base text-gray-600">
                                 {a.role === 'designer' ? 'Designer' : 'Développeur'}
                               </div>
                             </div>
-                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-base font-semibold ring-1 ${getStatusBadge(a.status)}`}>
+                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-sm font-semibold ring-1 ${getStatusBadge(a.status)}`}>
                               {getStatusLabel(a.status)}
                             </span>
                           </div>
-                          <div className="mt-3 text-sm sm:text-base text-gray-700">
+                          <div className="mt-3 text-sm sm:text-sm text-gray-700">
                             Accéder à cette candidature
                           </div>
                         </Link>

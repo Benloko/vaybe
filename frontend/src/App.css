@@ -36,3 +36,13 @@
     transform: rotate(360deg);
   }
 }
+
+/* Hide horizontal scrollbar while keeping scroll behavior (mobile header nav). */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

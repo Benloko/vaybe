@@ -46,10 +46,12 @@ export default function CandidateLogin() {
         // ignore
       }
 
-      if (next && next.startsWith('/')) {
+      // UX: en dehors d'un parcours "postuler", on arrive toujours sur les offres.
+      // (Certaines URLs peuvent garder un ?next=... qui renverrait vers /candidature.)
+      if (reason === 'apply' && next && next.startsWith('/')) {
         navigate(next);
       } else {
-        navigate('/candidature');
+        navigate('/');
       }
     } catch (err) {
       setError(err?.message || 'Impossible de se connecter.');
@@ -117,20 +119,21 @@ export default function CandidateLogin() {
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
-            <Link
-              to={`/inscription${next || reason ? `?${new URLSearchParams({ ...(next ? { next } : {}), ...(reason ? { reason } : {}) }).toString()}` : ''}`}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 rounded-xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold text-gray-900"
-            >
-              Créer un compte
-            </Link>
             <button
               type="button"
               disabled={busy || !canSubmit}
               onClick={submit}
-              className="w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold disabled:opacity-60 whitespace-nowrap"
+              className="order-1 sm:order-2 w-full sm:w-auto px-5 py-3.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-lg sm:text-sm font-extrabold disabled:opacity-60 whitespace-nowrap"
             >
               Se connecter
             </button>
+
+            <Link
+              to={`/inscription${next || reason ? `?${new URLSearchParams({ ...(next ? { next } : {}), ...(reason ? { reason } : {}) }).toString()}` : ''}`}
+              className="order-2 sm:order-1 w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 rounded-xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold text-gray-900"
+            >
+              Créer un compte
+            </Link>
           </div>
         </div>
       </div>
