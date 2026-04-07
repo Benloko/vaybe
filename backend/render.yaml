@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: vaybe-backend
+    env: php
+    plan: free
+    region: frankfurt
+    buildCommand: >-
+      composer install --no-dev --optimize-autoloader &&
+      php artisan config:cache &&
+      php artisan route:cache &&
+      php artisan view:cache &&
+      php artisan migrate --force
+    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: Vaybe
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: error
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: FILESYSTEM_DISK
+        value: public
+      # Les variables sensibles sont à renseigner manuellement dans le dashboard Render :
+      # APP_KEY, APP_URL, DB_*, FRONTEND_URL, ADMIN_EMAIL, ADMIN_PASSWORD
+      # AWS_* si tu utilises S3 pour les avatars
