@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = '/api';
+const DEFAULT_API_URL = 'https://vaybe-backend.onrender.com/api';
 const RAW_API_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) || '';
 
 function normalizeApiUrl(raw) {
@@ -19,12 +19,41 @@ function getApiBaseUrl() {
   return String(API_URL || '').replace(/\/api\/?$/, '');
 }
 
+function guessBackendBaseUrl() {
+  try {
+    // Si REACT_APP_API_URL est absolu, on s'en sert.
+    const raw = String(RAW_API_URL || '').trim();
+    if (raw) {
+      try {
+        const u = new URL(raw);
+        return `${u.protocol}//${u.host}`;
+      } catch {
+        // ignore
+      }
+    }
+
+    // En dev CRA: frontend souvent sur :3000 et backend Laravel sur :8000.
+    if (typeof window !== 'undefined' && window.location) {
+      const { protocol, hostname, port, origin } = window.location;
+      if (String(port || '') === '3000' && hostname) {
+        return `${protocol}//${hostname}:8000`;
+      }
+      return String(origin || '').trim();
+    }
+  } catch {
+    // ignore
+  }
+
+  return '';
+}
+
 function normalizePublicAssetUrl(rawUrl) {
   const raw = String(rawUrl || '').trim();
   if (!raw) return '';
   if (raw.startsWith('data:')) return raw;
 
-  const base = getApiBaseUrl();
+  let base = getApiBaseUrl();
+  if (!base) base = guessBackendBaseUrl();
 
   // Cas le plus simple: l'API renvoie un chemin relatif.
   if (raw.startsWith('/storage/')) return `${base}${raw}`;
@@ -328,6 +357,7 @@ export const applicationService = {
   clearCandidateLogoutContext() {
     try {
       const lastId = localStorage.getItem('lastApplicationId');
+      const profileId = localStorage.getItem('candidateProfileApplicationId');
 
       // Session compte candidat
       localStorage.removeItem('candidateAccountId');
@@ -340,8 +370,15 @@ export const applicationService = {
       localStorage.removeItem('lastApplicationId');
       localStorage.removeItem('lastApplicationStatus');
 
+      // Profil candidature par défaut (brouillon)
+      localStorage.removeItem('candidateProfileApplicationId');
+
       if (lastId) {
         localStorage.removeItem(`candidateAvatar:${String(lastId)}`);
+      }
+
+      if (profileId) {
+        localStorage.removeItem(`candidateAvatar:${String(profileId)}`);
       }
 
       window.dispatchEvent(new Event('candidateSessionChanged'));
@@ -373,10 +410,46 @@ export const applicationService = {
     }
   },
 
+  // Profil candidat (profil "candidature" par défaut) — retourne/crée une candidature brouillon sans offre
+  async getOrCreateCandidateProfile(candidateAccountId) {
+    try {
+      const cid = String(candidateAccountId || '').trim();
+      if (!cid) throw new Error('Compte candidat manquant.');
+
+      const response = await fetch(`${API_URL}/candidates/${encodeURIComponent(cid)}/profile`, {
+        cache: 'no-store',
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(extractLaravelError(payload) || 'Erreur lors du chargement');
+      }
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
   // Offres
   async getOffers() {
     try {
       const response = await fetch(`${API_URL}/offers`);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(extractLaravelError(payload) || 'Erreur lors du chargement');
+      }
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  // Rôles (public)
+  async getRoles() {
+    try {
+      const response = await fetch(`${API_URL}/roles`, { cache: 'no-store' });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(extractLaravelError(payload) || 'Erreur lors du chargement');
@@ -395,6 +468,33 @@ export const applicationService = {
       if (!adminHeaders) throw new Error('Non authentifié (admin).');
 
       const response = await fetch(`${API_URL}/admin/offer-types`, {
+        cache: 'no-store',
+        headers: {
+          ...adminHeaders,
+        },
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        handleAdminUnauthorized();
+        throw new Error('Session admin expirée.');
+      }
+      if (!response.ok) {
+        throw new Error(extractLaravelError(payload) || 'Erreur lors du chargement');
+      }
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async getOfferDeletionCheck(id) {
+    try {
+      const adminHeaders = getAdminAuthHeaders();
+      if (!adminHeaders) throw new Error('Non authentifié (admin).');
+
+      const response = await fetch(`${API_URL}/admin/offers/${encodeURIComponent(String(id))}/deletion-check`, {
         cache: 'no-store',
         headers: {
           ...adminHeaders,
@@ -501,6 +601,119 @@ export const applicationService = {
     }
   },
 
+  // Rôles (admin)
+  async getAdminRoles() {
+    try {
+      const adminHeaders = getAdminAuthHeaders();
+      if (!adminHeaders) throw new Error('Non authentifié (admin).');
+
+      const response = await fetch(`${API_URL}/admin/roles`, {
+        cache: 'no-store',
+        headers: {
+          ...adminHeaders,
+        },
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        handleAdminUnauthorized();
+        throw new Error('Session admin expirée.');
+      }
+      if (!response.ok) {
+        throw new Error(extractLaravelError(payload) || 'Erreur lors du chargement');
+      }
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async createRole({ key, label } = {}) {
+    try {
+      const adminHeaders = getAdminAuthHeaders();
+      if (!adminHeaders) throw new Error('Non authentifié (admin).');
+
+      const response = await fetch(`${API_URL}/admin/roles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...adminHeaders,
+        },
+        body: JSON.stringify({ key, label }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        handleAdminUnauthorized();
+        throw new Error('Session admin expirée.');
+      }
+      if (!response.ok) {
+        throw new Error(extractLaravelError(payload) || 'Erreur lors de la création');
+      }
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async updateRole(id, { label } = {}) {
+    try {
+      const adminHeaders = getAdminAuthHeaders();
+      if (!adminHeaders) throw new Error('Non authentifié (admin).');
+
+      const response = await fetch(`${API_URL}/admin/roles/${encodeURIComponent(String(id))}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...adminHeaders,
+        },
+        body: JSON.stringify({ label }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        handleAdminUnauthorized();
+        throw new Error('Session admin expirée.');
+      }
+      if (!response.ok) {
+        throw new Error(extractLaravelError(payload) || 'Erreur lors de la mise à jour');
+      }
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async deleteRole(id) {
+    try {
+      const adminHeaders = getAdminAuthHeaders();
+      if (!adminHeaders) throw new Error('Non authentifié (admin).');
+
+      const response = await fetch(`${API_URL}/admin/roles/${encodeURIComponent(String(id))}`, {
+        method: 'DELETE',
+        headers: {
+          ...adminHeaders,
+        },
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        handleAdminUnauthorized();
+        throw new Error('Session admin expirée.');
+      }
+      if (!response.ok) {
+        throw new Error(extractLaravelError(payload) || 'Erreur lors de la suppression');
+      }
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
   async getOffer(id) {
     try {
       const response = await fetch(`${API_URL}/offers/${encodeURIComponent(String(id))}`, { cache: 'no-store' });
@@ -565,6 +778,35 @@ export const applicationService = {
       }
       if (!response.ok) {
         throw new Error(extractLaravelError(payload) || 'Erreur lors de la mise à jour');
+      }
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async deleteOffer(id, { force } = {}) {
+    try {
+      const adminHeaders = getAdminAuthHeaders();
+      if (!adminHeaders) throw new Error('Non authentifié (admin).');
+
+      const qs = force ? '?force=1' : '';
+
+      const response = await fetch(`${API_URL}/offers/${encodeURIComponent(String(id))}${qs}`, {
+        method: 'DELETE',
+        headers: {
+          ...adminHeaders,
+        },
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        handleAdminUnauthorized();
+        throw new Error('Session admin expirée.');
+      }
+      if (!response.ok) {
+        throw new Error(extractLaravelError(payload) || 'Erreur lors de la suppression');
       }
       return payload;
     } catch (error) {
