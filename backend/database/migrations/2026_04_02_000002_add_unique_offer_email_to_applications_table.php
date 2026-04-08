@@ -25,11 +25,11 @@ return new class extends Migration
         // puis la plus récente.
         try {
             $groups = DB::table('applications')
-                ->select('offer_id', 'email', DB::raw('COUNT(*) as c'))
+                ->select('offer_id', 'email')
                 ->whereNotNull('offer_id')
                 ->whereNotNull('email')
                 ->groupBy('offer_id', 'email')
-                ->having('c', '>', 1)
+                ->havingRaw('COUNT(*) > 1')
                 ->get();
 
             foreach ($groups as $g) {
