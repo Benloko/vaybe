@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = 'https://vaybe-backend.onrender.com/api';
+const DEFAULT_API_URL = process.env.NODE_ENV === 'production' ? 'https://vaybe-backend.onrender.com/api' : '/api';
 const RAW_API_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) || '';
 
 function normalizeApiUrl(raw) {
