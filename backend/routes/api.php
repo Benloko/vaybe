@@ -38,21 +38,6 @@ Route::get('/health', fn() => response()->json([
     'timestamp' => now()->toIso8601String(),
 ]));
 
-Route::get('/migrate-run', function() {
-    if (app()->environment('production')) {
-        \Artisan::call('migrate', ['--force' => true]);
-        return response()->json(['status' => 'ok', 'output' => \Artisan::output()]);
-    }
-    return response()->json(['status' => 'not allowed'], 403);
-});
-
-Route::get('/fix-verified', function() {
-    if (app()->environment('production')) {
-        $count = DB::table('candidate_accounts')->whereNull('email_verified_at')->update(['email_verified_at' => now()]);
-        return response()->json(['status' => 'ok', 'updated' => $count]);
-    }
-    return response()->json(['status' => 'not allowed'], 403);
-});
 
 // Routes pour les candidatures (sans authentification pour ce test)
 Route::apiResource('applications', ApplicationController::class, [
