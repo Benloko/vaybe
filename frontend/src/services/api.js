@@ -15,10 +15,12 @@ function normalizeApiUrl(raw) {
 
 const API_URL = normalizeApiUrl(RAW_API_URL);
 
+// eslint-disable-next-line no-unused-vars
 function getApiBaseUrl() {
   return String(API_URL || '').replace(/\/api\/?$/, '');
 }
 
+// eslint-disable-next-line no-unused-vars
 function guessBackendBaseUrl() {
   try {
     // Si REACT_APP_API_URL est absolu, on s'en sert.
