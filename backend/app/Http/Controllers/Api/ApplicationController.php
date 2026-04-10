@@ -172,7 +172,7 @@ class ApplicationController extends Controller
         );
 
         $disk = config('filesystems.default', 'public');
-        $path = $file->storeAs('avatars', $filename, $disk);
+        $path = $file->storeAs('', $filename, $disk);
 
         // Nettoie l'ancien avatar si existant
         try {
