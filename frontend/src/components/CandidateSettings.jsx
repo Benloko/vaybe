@@ -65,14 +65,12 @@ export default function CandidateSettings() {
     setBusyAvatar(true);
     setError('');
     try {
-      // Supprime sur toutes les candidatures
       const listPayload = await applicationService.getCandidateApplicationsByEmail(account.email);
       const apps = listPayload?.data || [];
-      const ids = [...new Set([
-        profileAppId,
-        ...apps.map(a => a?.id).filter(Boolean)
-      ].filter(Boolean))];
+      const ids = [...new Set([profileAppId, ...apps.map(a => a?.id).filter(Boolean)].filter(Boolean))];
       await Promise.all(ids.map(id => applicationService.deleteApplicationAvatar(id).catch(() => {})));
+      // Vide le cache localStorage
+      ids.forEach(id => { try { localStorage.removeItem(`candidateAvatar:${id}`); } catch {} });
       setAvatarPreview(null);
       setAvatarFile(null);
       setSuccess('Photo supprimée !');
@@ -100,7 +98,8 @@ export default function CandidateSettings() {
       ].filter(Boolean))];
 
       await Promise.all(ids.map(id => applicationService.uploadApplicationAvatar(id, avatarFile)));
-
+      // Vide le cache localStorage
+      ids.forEach(id => { try { localStorage.removeItem(`candidateAvatar:${id}`); } catch {} });
       setAvatarFile(null);
       setSuccess('Photo mise à jour sur tous vos profils !');
       setTimeout(() => setSuccess(''), 3000);
