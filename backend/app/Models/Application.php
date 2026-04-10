@@ -96,7 +96,7 @@ class Application extends Model
 
         try {
             /** @var FilesystemAdapter $disk */
-            $disk = Storage::disk('public');
+            $disk = Storage::disk(config('filesystems.default', 'public'));
             $diskUrl = (string) $disk->url($path);
             $diskUrl = trim($diskUrl);
             if ($diskUrl === '') return null;
