@@ -540,17 +540,6 @@ export default function ApplicationProfile() {
                       </div>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={onPickAvatar}
-                      disabled={avatarSaving}
-                      className="-ml-1 h-10 w-10 sm:h-11 sm:w-11 rounded-full border bg-white hover:bg-gray-50 text-gray-700 font-extrabold flex items-center justify-center disabled:opacity-60"
-                      aria-label="Modifier la photo de profil"
-                      title="Modifier"
-                    >
-                      ✎
-                    </button>
-                  </div>
                   <input
                     ref={fileInputRef}
                     type="file"
