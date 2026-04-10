@@ -60,6 +60,23 @@ export default function CandidateSettings() {
     setAvatarPreview(URL.createObjectURL(file));
   };
 
+  const deleteAvatar = async () => {
+    if (!profileAppId) return;
+    setBusyAvatar(true);
+    setError('');
+    try {
+      await applicationService.deleteApplicationAvatar(profileAppId);
+      setAvatarPreview(null);
+      setAvatarFile(null);
+      setSuccess('Photo supprimée !');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err?.message || 'Erreur lors de la suppression.');
+    } finally {
+      setBusyAvatar(false);
+    }
+  };
+
   const saveAvatar = async () => {
     if (!avatarFile || !account.id) return;
     setBusyAvatar(true);
@@ -165,30 +182,48 @@ export default function CandidateSettings() {
           <div className="text-white font-extrabold text-base">Photo de profil</div>
           <div className="text-white/80 text-sm">Visible sur toutes vos candidatures</div>
         </div>
-        <div className="p-5 flex flex-col sm:flex-row items-center gap-5">
-          <div className="shrink-0">
+        <div className="p-6 flex flex-col items-center gap-4">
+          <div className="relative">
             {avatarPreview ? (
               <img src={avatarPreview} alt="profil"
-                className="h-24 w-24 rounded-full object-cover border-4 border-blue-100 shadow" />
+                className="h-36 w-36 rounded-full object-cover border-4 border-blue-100 shadow-md" />
             ) : (
-              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 border-4 border-blue-100 flex items-center justify-center text-4xl shadow">
+              <div className="h-36 w-36 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 border-4 border-blue-100 flex items-center justify-center text-6xl shadow-md">
                 👤
               </div>
             )}
-          </div>
-          <div className="flex-1 flex flex-col gap-3 w-full">
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-            <button onClick={() => fileRef.current?.click()}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold">
-              {avatarPreview ? '📷 Changer la photo' : '📷 Ajouter une photo'}
+            {/* Bouton caméra */}
+            <button onClick={() => fileRef.current?.click()} disabled={busyAvatar}
+              className="absolute bottom-1 right-1 h-9 w-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md border-2 border-white disabled:opacity-60"
+              title="Changer la photo">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
             </button>
-            {avatarFile && (
-              <button onClick={saveAvatar} disabled={busyAvatar}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold disabled:opacity-60">
-                {busyAvatar ? 'Enregistrement…' : '✅ Enregistrer la photo'}
+            {/* Bouton supprimer */}
+            {avatarPreview && !avatarFile && (
+              <button onClick={deleteAvatar} disabled={busyAvatar}
+                className="absolute bottom-1 left-1 h-9 w-9 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-md border-2 border-white disabled:opacity-60"
+                title="Supprimer la photo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
               </button>
             )}
           </div>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+          {avatarFile && (
+            <button onClick={saveAvatar} disabled={busyAvatar}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-extrabold disabled:opacity-60">
+              {busyAvatar ? 'Enregistrement…' : '✅ Enregistrer la photo'}
+            </button>
+          )}
+          {success && <div className="text-sm text-green-700 font-semibold">{success}</div>}
+          {error && <div className="text-sm text-red-700">{error}</div>}
         </div>
       </div>
 
