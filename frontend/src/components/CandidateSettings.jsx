@@ -65,7 +65,14 @@ export default function CandidateSettings() {
     setBusyAvatar(true);
     setError('');
     try {
-      await applicationService.deleteApplicationAvatar(profileAppId);
+      // Supprime sur toutes les candidatures
+      const listPayload = await applicationService.getCandidateApplicationsByEmail(account.email);
+      const apps = listPayload?.data || [];
+      const ids = [...new Set([
+        profileAppId,
+        ...apps.map(a => a?.id).filter(Boolean)
+      ].filter(Boolean))];
+      await Promise.all(ids.map(id => applicationService.deleteApplicationAvatar(id).catch(() => {})));
       setAvatarPreview(null);
       setAvatarFile(null);
       setSuccess('Photo supprimée !');
