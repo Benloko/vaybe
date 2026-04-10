@@ -536,6 +536,7 @@ export default function ApplicationProfile() {
                         </div>
                       </div>
                     )}
+                  </div>
 
                   <input
                     ref={fileInputRef}
