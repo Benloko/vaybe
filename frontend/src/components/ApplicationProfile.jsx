@@ -520,15 +520,12 @@ export default function ApplicationProfile() {
                 <div>
                   <div className="flex items-end gap-1">
                     {avatarDataUrl ? (
-                      <button
-                        type="button"
-                        onClick={openAvatarModal}
-                        className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-white ring-4 ring-white overflow-hidden shadow-sm border flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        aria-label="Voir la photo de profil"
-                        title="Voir"
+                      <div
+                        className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-white ring-4 ring-white overflow-hidden shadow-sm border flex items-center justify-center"
+                        aria-label="Photo de profil"
                       >
                         <img src={avatarDataUrl} alt="Profil" className="h-full w-full object-cover" />
-                      </button>
+                      </div>
                     ) : (
                       <div
                         className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-white ring-4 ring-white overflow-hidden shadow-sm border flex items-center justify-center"
