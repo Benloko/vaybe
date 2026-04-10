@@ -147,7 +147,7 @@ export default function AdminApplicationDetail() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto w-full flex-1 min-h-0 flex flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <div className="text-sm text-gray-500">Admin</div>
@@ -162,7 +162,7 @@ export default function AdminApplicationDetail() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="h-20 sm:h-28 bg-gradient-to-r from-emerald-600 to-teal-600" />
 
         <div className="px-4 sm:px-6 pb-5 sm:pb-6 -mt-8 sm:-mt-10">
@@ -207,7 +207,7 @@ export default function AdminApplicationDetail() {
                 {application?.offer_title ? (
                   <span className="text-xs sm:text-sm text-gray-600">• {application.offer_title}</span>
                 ) : null}
-                <span className="text-xs sm:text-sm text-gray-600">• {application?.role === 'designer' ? 'Designer' : 'Développeur'}</span>
+                <span className="text-xs sm:text-sm text-gray-600">• {application?.offer_type_label || application?.role_label || (application?.role === 'designer' ? 'Designer' : 'Développeur')}</span>
               </div>
               {application?.email ? <div className="mt-2 text-sm text-gray-600 break-all">{application.email}</div> : null}
             </div>
@@ -234,7 +234,7 @@ export default function AdminApplicationDetail() {
           </div>
         </div>
 
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 flex-1 min-h-0 overflow-auto">
           {error && (
             <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-800">
               <div className="font-bold">Oups…</div>
@@ -274,7 +274,7 @@ export default function AdminApplicationDetail() {
                       </div>
                       <div className="rounded-xl border bg-gray-50 p-4">
                         <dt className="text-xs font-semibold text-gray-600">Rôle</dt>
-                        <dd className="mt-1 font-semibold text-gray-900">{application.role === 'designer' ? 'Designer' : 'Développeur'}</dd>
+                        <dd className="mt-1 font-semibold text-gray-900">{application.offer_type_label || application.role_label || (application.role === 'designer' ? 'Designer' : 'Développeur')}</dd>
                       </div>
                       <div className="rounded-xl border bg-gray-50 p-4">
                         <dt className="text-xs font-semibold text-gray-600">Email</dt>
@@ -347,7 +347,7 @@ export default function AdminApplicationDetail() {
                         <span className="text-xs">{application.portfolio ? 'Ouvrir' : '—'}</span>
                       </a>
                       <a
-                        href={application.cv || '#'}
+                        href={application.cv ? applicationService.normalizePublicAssetUrl(application.cv) : '#'}
                         target="_blank"
                         rel="noreferrer"
                         className={`inline-flex items-center justify-between gap-2 px-4 py-3 rounded-xl border text-sm font-semibold ${application.cv ? 'bg-white hover:bg-gray-50 text-blue-700' : 'bg-gray-50 text-gray-500 cursor-not-allowed pointer-events-none'}`}

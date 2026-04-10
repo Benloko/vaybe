@@ -11,7 +11,7 @@ const formatDate = (value) => {
 
 const getOfferTitle = (app) => app?.offer?.title || app?.offer_title || '—';
 
-const getRoleLabel = (role) => (role === 'designer' ? 'Designer' : 'Dev');
+const getRoleLabel = (app) => app?.offer_type_label || app?.role_label || (app?.role === 'designer' ? 'Designer' : 'Dev');
 
 const getRoleBadge = (role) =>
   role === 'designer'
@@ -91,7 +91,7 @@ export default function ApplicationsList() {
     if (q) {
       result = result.filter((app) => {
         const offerTitle = String(getOfferTitle(app)).toLowerCase();
-        const roleLabel = getRoleLabel(app?.role).toLowerCase();
+        const roleLabel = getRoleLabel(app).toLowerCase();
         const statusLabel = getStatusLabel(app?.status).toLowerCase();
         const haystack = [
           app?.nom,
@@ -228,20 +228,19 @@ export default function ApplicationsList() {
   return (
     <div className="w-full sm:max-w-6xl sm:mx-auto pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <div className="bg-white sm:rounded-2xl rounded-none shadow-sm border-y sm:border overflow-hidden">
-        <div className="px-4 py-4 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-sm text-white/90">Espace admin</div>
-              <h1 className="text-xl sm:text-3xl font-extrabold">Candidatures</h1>
-              <p className="mt-1 text-white/90 hidden sm:block">Recherche, filtres, et accès aux détails.</p>
+              <h1 className="text-lg sm:text-2xl font-extrabold leading-tight">Candidatures</h1>
+              <p className="mt-0.5 text-sm text-white/90 hidden lg:block">Recherche, filtres, et accès aux détails.</p>
             </div>
             <div className="text-right">
-              <div className="text-sm text-white/90">Affichées</div>
-              <div className="text-xl sm:text-2xl font-extrabold">{filteredApps.length}</div>
+              <div className="text-xs text-white/90">Affichées</div>
+              <div className="text-lg sm:text-xl font-extrabold leading-tight">{filteredApps.length}</div>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-3 flex flex-col gap-2">
             <div className="flex items-center gap-2 sm:hidden">
               <button
                 type="button"
@@ -272,7 +271,7 @@ export default function ApplicationsList() {
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-white border border-white/40 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/70"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl bg-white border border-white/40 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/70"
                 placeholder="Candidat, email, offre, ville…"
               />
             </div>
@@ -411,13 +410,13 @@ export default function ApplicationsList() {
               </div>
             )}
 
-            <div className="hidden sm:flex flex-wrap items-end gap-3">
+            <div className="hidden sm:flex flex-wrap items-end gap-2">
               <div className="w-full sm:w-auto">
                 <label className="block text-xs font-semibold text-white/90 mb-1">Rôle</label>
                 <select
                   value={filterRole}
                   onChange={(e) => setFilterRole(e.target.value)}
-                  className="w-full sm:w-48 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                  className="w-full sm:w-44 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
                 >
                   <option value="all" className="text-gray-900">Tous</option>
                   <option value="dev" className="text-gray-900">Dev</option>
@@ -430,7 +429,7 @@ export default function ApplicationsList() {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full sm:w-56 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                  className="w-full sm:w-48 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
                 >
                   <option value="all" className="text-gray-900">Tous</option>
                   <option value="pending" className="text-gray-900">En attente</option>
@@ -444,7 +443,7 @@ export default function ApplicationsList() {
                 <select
                   value={filterOffer}
                   onChange={(e) => setFilterOffer(e.target.value)}
-                  className="w-full sm:w-72 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                  className="w-full sm:w-64 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
                 >
                   <option value="all" className="text-gray-900">Toutes les offres</option>
                   {(offers || []).map((o) => (
@@ -458,7 +457,7 @@ export default function ApplicationsList() {
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-blue-700 hover:bg-white/90 font-semibold transition"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-white text-blue-700 hover:bg-white/90 font-semibold transition"
               >
                 Rafraîchir
               </button>
@@ -466,7 +465,7 @@ export default function ApplicationsList() {
           </div>
         </div>
 
-        <div className="px-0 py-4 sm:p-6">
+        <div className="px-0 py-3 sm:p-4">
           {error && (
             <div className="mb-5 p-4 rounded-xl border border-red-200 bg-red-50 text-red-800">
               <div className="font-bold">Erreur</div>
@@ -512,7 +511,7 @@ export default function ApplicationsList() {
 
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${getRoleBadge(app?.role)}`}>
-                          {getRoleLabel(app?.role)}
+                          {getRoleLabel(app)}
                         </span>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold ring-1 ${getScoreBadge(app?.score)}`}>
                           {Number(app?.score || 0)}/4
@@ -557,7 +556,7 @@ export default function ApplicationsList() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1 ${getRoleBadge(app?.role)}`}>
-                            {getRoleLabel(app?.role)}
+                            {getRoleLabel(app)}
                           </span>
                         </td>
                         <td className="px-6 py-4">

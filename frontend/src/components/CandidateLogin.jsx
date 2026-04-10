@@ -8,6 +8,7 @@ export default function CandidateLogin() {
 
   const params = new URLSearchParams(location.search);
   const created = params.get('created') === '1';
+  const reset = params.get('reset') === '1';
   const prefillIdentifier = params.get('identifier') || '';
   const reason = params.get('reason') || '';
   const next = params.get('next') || '';
@@ -41,6 +42,16 @@ export default function CandidateLogin() {
       try {
         localStorage.removeItem('lastApplicationId');
         localStorage.removeItem('lastApplicationStatus');
+        localStorage.removeItem('candidateProfileApplicationId');
+        // Réinitialise les compteurs de notifications pour éviter de compter les anciens messages
+        const now = new Date().toISOString();
+        const id = data?.id ? String(data.id) : '';
+        if (id) {
+          localStorage.setItem(`candidateNotificationsSeenAt:${id}`, now);
+          localStorage.setItem(`candidateStatusSeenAt:${id}`, now);
+          localStorage.setItem(`candidateUnreadCount:${id}`, '0');
+          localStorage.setItem(`candidateStatusUnreadCount:${id}`, '0');
+        }
         window.dispatchEvent(new Event('lastApplicationIdChanged'));
       } catch {
         // ignore
@@ -93,6 +104,11 @@ export default function CandidateLogin() {
               Compte créé. Connectez-vous pour continuer.
             </div>
           )}
+          {reset && !error && (
+            <div className="p-3.5 rounded-xl border border-green-200 bg-green-50 text-green-800 text-base sm:text-sm">
+              Mot de passe réinitialisé. Connectez-vous avec votre nouveau mot de passe.
+            </div>
+          )}
           {error && (
             <div className="p-3.5 rounded-xl border border-red-200 bg-red-50 text-red-800 text-base sm:text-sm">{error}</div>
           )}
@@ -133,6 +149,11 @@ export default function CandidateLogin() {
               className="order-2 sm:order-1 w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 rounded-xl border bg-white hover:bg-gray-50 text-base sm:text-sm font-semibold text-gray-900"
             >
               Créer un compte
+            </Link>
+          </div>
+          <div className="text-center">
+            <Link to="/mot-de-passe-oublie" className="text-sm text-blue-700 hover:underline font-semibold">
+              Mot de passe oublié ?
             </Link>
           </div>
         </div>

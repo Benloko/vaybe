@@ -39,9 +39,16 @@ export default function ApplicationProfile() {
     }
   });
 
+  // eslint-disable-next-line no-unused-vars
   const isOwnProfile = useMemo(() => {
     try {
-      return String(localStorage.getItem('lastApplicationId') || '') === String(id || '');
+      const routeId = String(id || '').trim();
+      if (!routeId) return false;
+
+      const lastId = String(localStorage.getItem('lastApplicationId') || '').trim();
+      const profileId = String(localStorage.getItem('candidateProfileApplicationId') || '').trim();
+
+      return (lastId && lastId === routeId) || (profileId && profileId === routeId);
     } catch {
       return false;
     }
@@ -49,9 +56,7 @@ export default function ApplicationProfile() {
 
   const [activeTab, setActiveTab] = useState('infos');
 
-  const canEditProfile = useMemo(() => {
-    return isOwnProfile && String(candidateAccount?.id || '').trim() !== '';
-  }, [candidateAccount?.id, isOwnProfile]);
+  const canEditProfile = false;
 
   const [editingField, setEditingField] = useState(null);
   const [profileDraft, setProfileDraft] = useState({
@@ -112,20 +117,27 @@ export default function ApplicationProfile() {
     return String(application?.offer_title || application?.offre || '').trim();
   }, [application?.offer_title, application?.offre]);
 
+  const isDefaultProfile = useMemo(() => {
+    const offerId = application?.offer_id;
+    const hasOfferId = offerId !== null && offerId !== undefined && String(offerId).trim() !== '';
+    return !hasOfferId && !currentOfferTitle;
+  }, [application?.offer_id, currentOfferTitle]);
+
   const currentRoleLabel = useMemo(() => {
-    const role = String(application?.role || '').trim();
-    if (!role) return '';
-    return role === 'designer' ? 'Designer' : 'Développeur';
-  }, [application?.role]);
+    if (isDefaultProfile) return '';
+    return application?.offer_type_label || application?.role_label || (application?.role === 'designer' ? 'Designer' : 'Développeur');
+  }, [application?.offer_type_label, application?.role_label, application?.role, isDefaultProfile]);
 
   const currentStatusLabel = useMemo(() => {
+    if (isDefaultProfile) return 'Profil (par défaut)';
     return application?.status === 'approved'
       ? '✅ Approuvée'
       : application?.status === 'rejected'
         ? '❌ Rejetée'
         : '⏳ En attente';
-  }, [application?.status]);
+  }, [application?.status, isDefaultProfile]);
 
+  // eslint-disable-next-line no-unused-vars
   const logout = () => {
     applicationService.clearCandidateLogoutContext();
     try {
@@ -165,7 +177,23 @@ export default function ApplicationProfile() {
       appEmail = String(appData?.email || '').trim().toLowerCase();
     } catch (err) {
       if (!alive()) return;
-      setError(err?.message || 'Impossible de charger votre candidature.');
+      const msg = String(err?.message || '').trim();
+      // Si la candidature n'existe plus (ex: offre supprimée), on retombe sur le profil par défaut.
+      if (msg.toLowerCase().includes('introuvable') || msg.toLowerCase().includes('not found')) {
+        try {
+          if (id) {
+            localStorage.removeItem('lastApplicationId');
+            localStorage.removeItem('candidateProfileApplicationId');
+            localStorage.removeItem(`candidateAvatar:${id}`);
+          }
+        } catch {
+          // ignore
+        }
+        navigate('/profil', { replace: true });
+        return;
+      }
+
+      setError(msg || 'Impossible de charger votre candidature.');
     } finally {
       if (!alive()) return;
       setLoading(false);
@@ -211,7 +239,6 @@ export default function ApplicationProfile() {
         const lastSeenAt = localStorage.getItem(seenKey);
         const lastSeenTs = lastSeenAt ? new Date(lastSeenAt).getTime() : 0;
         let unread = 0;
-
         for (const m of Array.isArray(loadedMessages) ? loadedMessages : []) {
           if (m?.sender !== 'admin') continue;
           const kind = String(m?.kind || 'message');
@@ -546,6 +573,14 @@ export default function ApplicationProfile() {
                     <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-sm font-semibold ring-1 ${getStatusBadge(application.status)}`}>
                       {currentStatusLabel}
                     </span>
+                    {isDefaultProfile && (
+                      <Link
+                        to="/"
+                        className="text-sm sm:text-base text-gray-600 hover:text-gray-900 font-semibold"
+                      >
+                        • Postulez à une opportunité pour créer votre profil complet.
+                      </Link>
+                    )}
                     {currentOfferTitle && (
                       <span className="text-sm sm:text-base text-gray-600">• {currentOfferTitle}</span>
                     )}
@@ -946,28 +981,39 @@ export default function ApplicationProfile() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {filteredMyApplications.map((a) => (
+                      {filteredMyApplications.map((a) => {
+                        const isCurrentProfile = String(a?.id || '') === String(id || '');
+                        return (
                         <Link
                           key={a.id}
                           to={`/candidatures/${a.id}`}
-                          className="block rounded-2xl border bg-white p-4 sm:p-5 hover:bg-gray-50 transition"
+                          className={`block rounded-2xl border p-4 sm:p-5 transition ${
+                            isCurrentProfile
+                              ? 'border-yellow-400 bg-yellow-50 hover:bg-yellow-100'
+                              : 'bg-white hover:bg-gray-50'
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <div className="text-sm sm:text-base font-extrabold text-gray-900 leading-snug">{a.offer_title || 'Candidature'}</div>
+                              <div className={`text-sm sm:text-base font-extrabold leading-snug ${
+                                isCurrentProfile ? 'text-yellow-700' : 'text-gray-900'
+                              }`}>{a.offer_title || 'Candidature'}</div>
                               <div className="mt-1 text-sm sm:text-base text-gray-600">
-                                {a.role === 'designer' ? 'Designer' : 'Développeur'}
+                                {a.offer_type_label || a.role_label || (a.role === 'designer' ? 'Designer' : 'Développeur')}
                               </div>
                             </div>
                             <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm sm:text-sm font-semibold ring-1 ${getStatusBadge(a.status)}`}>
                               {getStatusLabel(a.status)}
                             </span>
                           </div>
-                          <div className="mt-3 text-sm sm:text-sm text-gray-700">
-                            Accéder à cette candidature
+                          <div className={`mt-3 text-sm sm:text-sm ${
+                            isCurrentProfile ? 'text-yellow-600 font-semibold' : 'text-gray-700'
+                          }`}>
+                            {isCurrentProfile ? '⭐ Profil actif' : 'Accéder à cette candidature'}
                           </div>
                         </Link>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
@@ -982,17 +1028,7 @@ export default function ApplicationProfile() {
                 </div>
               )}
 
-              {isOwnProfile && (
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={logout}
-                    className="w-full px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold"
-                  >
-                    Se déconnecter
-                  </button>
-                </div>
-              )}
+
             </div>
           )}
         </div>

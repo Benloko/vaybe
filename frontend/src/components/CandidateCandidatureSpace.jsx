@@ -63,56 +63,36 @@ export default function CandidateCandidatureSpace() {
       return;
     }
 
-    // Si on a déjà un lastApplicationId, on ne l'ouvre que s'il appartient bien au compte connecté.
+    // Si on a déjà un lastApplicationId, on vérifie simplement qu'il appartient bien au compte connecté.
     // Sinon, on nettoie le contexte pour éviter d'afficher des candidatures d'un autre compte.
+    let alive = true;
+
+    // Vérifie que lastApplicationId appartient bien au compte connecté (en arrière-plan)
     if (lastApplicationId) {
       const expectedEmail = String(candidateEmail || '').trim().toLowerCase();
-      if (!expectedEmail) {
-        try {
-          localStorage.removeItem('lastApplicationId');
-          localStorage.removeItem('lastApplicationStatus');
-          window.dispatchEvent(new Event('lastApplicationIdChanged'));
-        } catch {
-          // ignore
-        }
-      } else {
-        let alive = true;
-
+      if (expectedEmail) {
         (async () => {
           try {
             const payload = await applicationService.getApplication(lastApplicationId);
             if (!alive) return;
             const appEmail = String(payload?.data?.email || '').trim().toLowerCase();
-            if (appEmail && appEmail === expectedEmail) {
-              navigate(`/profil/${lastApplicationId}`);
-              return;
-            }
-
-            try {
-              localStorage.removeItem('lastApplicationId');
-              localStorage.removeItem('lastApplicationStatus');
-              window.dispatchEvent(new Event('lastApplicationIdChanged'));
-            } catch {
-              // ignore
+            if (appEmail && appEmail !== expectedEmail) {
+              try {
+                localStorage.removeItem('lastApplicationId');
+                localStorage.removeItem('lastApplicationStatus');
+                window.dispatchEvent(new Event('lastApplicationIdChanged'));
+              } catch { /* ignore */ }
             }
           } catch {
             try {
               localStorage.removeItem('lastApplicationId');
               localStorage.removeItem('lastApplicationStatus');
               window.dispatchEvent(new Event('lastApplicationIdChanged'));
-            } catch {
-              // ignore
-            }
+            } catch { /* ignore */ }
           }
         })();
-
-        return () => {
-          alive = false;
-        };
       }
-    }
-
-    let alive = true;
+ }
 
     async function load() {
       setLoading(true);
@@ -125,7 +105,25 @@ export default function CandidateCandidatureSpace() {
         const payload = await applicationService.getCandidateApplicationsByEmail(candidateEmail);
         if (!alive) return;
         const list = payload?.data || [];
-        setApplications(Array.isArray(list) ? list : []);
+        const next = Array.isArray(list) ? list : [];
+        setApplications(next);
+
+        // Si on a un lastApplicationId, on met à jour son statut si besoin.
+        if (lastApplicationId) {
+          const match = next.find((a) => String(a?.id || '') === String(lastApplicationId));
+          const status = String(match?.status || '').trim();
+          if (status) {
+            try {
+              const prev = localStorage.getItem('lastApplicationStatus');
+              if (String(prev || '') !== status) {
+                localStorage.setItem('lastApplicationStatus', status);
+                window.dispatchEvent(new Event('lastApplicationIdChanged'));
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
       } catch (err) {
         if (!alive) return;
         setError(err?.message || 'Impossible de charger vos candidatures.');
@@ -149,16 +147,19 @@ export default function CandidateCandidatureSpace() {
     return applications.filter((a) => String(a?.email || '').trim().toLowerCase() === email);
   }, [applications, candidateEmail]);
 
-  useEffect(() => {
-    // Si on retrouve des candidatures, on ouvre la plus récente automatiquement.
-    if (lastApplicationId) return;
-    if (loading || error) return;
-    if (!myApplications || myApplications.length === 0) return;
-
-    const sorted = myApplications
+  const sortedMyApplications = useMemo(() => {
+    return (Array.isArray(myApplications) ? myApplications : [])
       .slice()
       .sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0));
-    const latest = sorted[0];
+  }, [myApplications]);
+
+  useEffect(() => {
+    // Si on retrouve des candidatures, on garde la plus récente comme contexte (badge messages/notifications),
+    // mais on n'ouvre plus automatiquement le profil.
+    if (lastApplicationId) return;
+    if (loading || error) return;
+    if (!sortedMyApplications || sortedMyApplications.length === 0) return;
+    const latest = sortedMyApplications[0];
     if (!latest?.id) return;
 
     try {
@@ -168,9 +169,7 @@ export default function CandidateCandidatureSpace() {
     } catch {
       // ignore
     }
-
-    navigate(`/profil/${latest.id}`);
-  }, [error, lastApplicationId, loading, myApplications, navigate]);
+  }, [error, lastApplicationId, loading, sortedMyApplications]);
 
   const logout = () => {
     applicationService.clearCandidateLogoutContext();
@@ -225,8 +224,35 @@ export default function CandidateCandidatureSpace() {
           )}
 
           {!loading && !error && myApplications.length > 0 && (
-            <div className="p-6 rounded-2xl border bg-gray-50">
-              <div className="text-sm sm:text-sm text-gray-600">Ouverture de votre candidature…</div>
+            <div className="space-y-3">
+              {sortedMyApplications.map((a) => {
+                const currentLastId = (() => { try { return localStorage.getItem('lastApplicationId'); } catch { return null; } })();
+                const isActive = String(a?.id || '') === String(currentLastId || '');
+                console.log('id:', a?.id, 'currentLastId:', currentLastId, 'isActive:', isActive);
+                return (
+                  <Link
+                    key={String(a?.id || '')}
+                    to={`/profil/${encodeURIComponent(String(a?.id || ''))}`}
+                    className={`block rounded-2xl border p-4 ${
+                      isActive
+                        ? 'border-red-400 bg-red-50 hover:bg-red-100'
+                        : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`text-sm font-extrabold truncate ${isActive ? 'text-red-700' : 'text-gray-900'}`}>
+                          {a?.offer_title || a?.offre || 'Candidature'}
+                        </div>
+                        <div className="mt-1 text-sm text-gray-600 truncate">{a?.offer_type_label || a?.role_label || a?.role || ''}</div>
+                      </div>
+                      <div className={`shrink-0 text-sm font-semibold ${isActive ? 'text-red-600' : 'text-blue-700'}`}>
+                        {isActive ? 'Déjà connecté' : 'Voir →'}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

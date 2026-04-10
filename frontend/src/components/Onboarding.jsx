@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 function markOnboardingCompleted() {
   try {
-    const id = String(localStorage.getItem('candidateAccountId') || '').trim();
-    if (id) localStorage.setItem(`candidateOnboardingSeen:${id}`, '1');
+    localStorage.setItem('onboardingSeen', '1');
     window.dispatchEvent(new Event('onboardingCompleted'));
   } catch {
     // ignore

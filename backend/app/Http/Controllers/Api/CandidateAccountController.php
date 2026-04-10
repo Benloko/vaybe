@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateCandidateAccountRequest;
 use App\Models\CandidateAccount;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
 
 class CandidateAccountController extends Controller
 {
@@ -18,6 +19,7 @@ class CandidateAccountController extends Controller
             'email' => $validated['email'],
             'phone' => $validated['phone'],
             'city' => $validated['city'] ?? null,
+            ...( isset($validated['password']) ? ['password_hash' => Hash::make($validated['password'])] : [] ),
         ]);
 
         return response()->json([

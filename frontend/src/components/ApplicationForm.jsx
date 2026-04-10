@@ -20,6 +20,7 @@ export default function ApplicationForm() {
   const [offersError, setOffersError] = useState('');
   const [offers, setOffers] = useState([]);
   const offerParam = searchParams.get('offer');
+  const isLoggedIn = Boolean(localStorage.getItem('candidateAccountId'));
 
   useEffect(() => {
     let candidateAccountId = null;
@@ -293,11 +294,31 @@ export default function ApplicationForm() {
       if (createdId) {
         try {
           localStorage.setItem('lastApplicationId', String(createdId));
-          localStorage.setItem('lastApplicationStatus', 'pending');
+          localStorage.setItem('lastApplicationStatus', String(payload?.data?.status || 'pending'));
           window.dispatchEvent(new Event('lastApplicationIdChanged'));
         } catch {
           // ignore
         }
+
+        // Copie l'avatar du profil par défaut vers la nouvelle candidature
+        try {
+          const profileId = localStorage.getItem('candidateProfileApplicationId');
+          if (profileId && String(profileId) !== String(createdId)) {
+            const profileData = await applicationService.getApplication(profileId);
+            const avatarUrl = profileData?.data?.avatar_url;
+            if (avatarUrl) {
+              const imgResponse = await fetch(applicationService.normalizePublicAssetUrl(avatarUrl));
+              if (imgResponse.ok) {
+                const blob = await imgResponse.blob();
+                const file = new File([blob], 'avatar.jpg', { type: blob.type });
+                await applicationService.uploadApplicationAvatar(String(createdId), file);
+              }
+            }
+          }
+        } catch {
+          // ignore si la copie échoue
+        }
+
         navigate(`/profil/${createdId}?created=1`);
         return;
       }
@@ -467,52 +488,44 @@ export default function ApplicationForm() {
 
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom <span className="text-red-600">*</span></label>
-                  <input
-                    type="text"
-                    name="nom"
-                    value={formData.nom}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      fieldErrors.nom ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
-                    placeholder="Ex: Jean Dupont"
-                    autoComplete="name"
-                  />
+                  {isLoggedIn ? (
+                    <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700">{formData.nom}</div>
+                  ) : (
+                    <input type="text" name="nom" value={formData.nom} onChange={handleChange}
+                      className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        fieldErrors.nom ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                      placeholder="Ex: Jean Dupont" autoComplete="name" />
+                  )}
                   {fieldErrors.nom && <div className="mt-1 text-sm text-red-700">{fieldErrors.nom}</div>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-600">*</span></label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      fieldErrors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
-                    placeholder="Ex: jean.dupont@mail.com"
-                    autoComplete="email"
-                  />
+                  {isLoggedIn ? (
+                    <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700">{formData.email}</div>
+                  ) : (
+                    <input type="email" name="email" value={formData.email} onChange={handleChange}
+                      className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        fieldErrors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                      placeholder="Ex: jean.dupont@mail.com" autoComplete="email" />
+                  )}
                   {fieldErrors.email && <div className="mt-1 text-sm text-red-700">{fieldErrors.email}</div>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone <span className="text-red-600">*</span></label>
-                  <input
-                    type="tel"
-                    name="telephone"
-                    value={formData.telephone}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      fieldErrors.telephone ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
-                    placeholder="Ex: 06 12 34 56 78"
-                    autoComplete="tel"
-                  />
-                  {fieldErrors.telephone && (
-                    <div className="mt-1 text-sm text-red-700">{fieldErrors.telephone}</div>
+                  {isLoggedIn ? (
+                    <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700">{formData.telephone}</div>
+                  ) : (
+                    <input type="tel" name="telephone" value={formData.telephone} onChange={handleChange}
+                      className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        fieldErrors.telephone ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                      placeholder="Ex: 06 12 34 56 78" autoComplete="tel" />
                   )}
+                  {fieldErrors.telephone && <div className="mt-1 text-sm text-red-700">{fieldErrors.telephone}</div>}
                 </div>
 
                 <div>
@@ -532,19 +545,15 @@ export default function ApplicationForm() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Rôle <span className="text-red-600">*</span></label>
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      fieldErrors.role ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="dev">💻 Développeur</option>
-                    <option value="designer">🎨 Designer</option>
-                  </select>
-                  {fieldErrors.role && <div className="mt-1 text-sm text-red-700">{fieldErrors.role}</div>}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+                  <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700">
+                    {(() => {
+                      const selectedOffer = offers.find(o => String(o.id) === String(formData.offer_id));
+                      const label = selectedOffer?.type_label || selectedOffer?.type;
+                      if (!label) return '💻 Développeur';
+                      return label;
+                    })()}
+                  </div>
                 </div>
               </div>
             )}

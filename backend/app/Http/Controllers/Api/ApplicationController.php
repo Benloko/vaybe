@@ -19,6 +19,7 @@ class ApplicationController extends Controller
     {
         $applications = Application::query()
             ->with(['account', 'offer'])
+            ->whereNotNull('offer_id')
             ->orderByDesc('created_at')
             ->get();
 
@@ -38,6 +39,7 @@ class ApplicationController extends Controller
 
         $applications = Application::query()
             ->with(['account', 'offer'])
+            ->whereNotNull('offer_id')
             ->whereRaw('lower(email) = ?', [$email])
             ->orderByDesc('created_at')
             ->get();

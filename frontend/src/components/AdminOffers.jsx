@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { applicationService } from '../services/api';
 
 function slugify(input) {
@@ -14,6 +14,7 @@ function slugify(input) {
 
 export default function AdminOffers() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const uiDensity = useMemo(() => {
     try {
@@ -58,6 +59,9 @@ export default function AdminOffers() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
 
+  const [flash, setFlash] = useState(null); // { kind: 'success' | 'error', message: string }
+  const flashTimerRef = useRef(null);
+
   const [formTypeOpen, setFormTypeOpen] = useState(false);
   const [formTypePos, setFormTypePos] = useState(null);
 
@@ -80,6 +84,8 @@ export default function AdminOffers() {
   const [typesBusyId, setTypesBusyId] = useState(null);
   const [typesCreateLoading, setTypesCreateLoading] = useState(false);
   const [typesModalError, setTypesModalError] = useState('');
+
+  const editFromQueryHandledRef = useRef(false);
 
   const filteredOffers = useMemo(() => {
     const query = String(search || '').trim().toLowerCase();
@@ -138,6 +144,38 @@ export default function AdminOffers() {
     load();
     loadOfferTypes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('adminOffersFlash');
+      if (!raw) return;
+      sessionStorage.removeItem('adminOffersFlash');
+      const parsed = JSON.parse(raw);
+      const message = String(parsed?.message || '').trim();
+      const kind = parsed?.kind === 'error' ? 'error' : 'success';
+      if (!message) return;
+      setFlash({ kind, message });
+
+      if (flashTimerRef.current) {
+        window.clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = null;
+      }
+
+      flashTimerRef.current = window.setTimeout(() => {
+        setFlash(null);
+        flashTimerRef.current = null;
+      }, 3800);
+    } catch {
+      // ignore
+    }
+
+    return () => {
+      if (flashTimerRef.current) {
+        window.clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -385,6 +423,23 @@ export default function AdminOffers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
+  useEffect(() => {
+    if (editFromQueryHandledRef.current) return;
+    const params = new URLSearchParams(location.search || '');
+    const editId = String(params.get('edit') || '').trim();
+    if (!editId) return;
+    if (loading) return;
+    const found = (offers || []).find((o) => String(o?.id || '') === editId);
+    if (!found) return;
+
+    editFromQueryHandledRef.current = true;
+    startEdit(found);
+
+    // Nettoie le query param pour éviter de ré-ouvrir le form après fermeture.
+    navigate('/admin/offres', { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, loading, offers]);
+
   const closeForm = () => {
     resetForm();
     setShowForm(false);
@@ -540,14 +595,29 @@ export default function AdminOffers() {
 
   return (
     <div className="w-full sm:max-w-4xl sm:mx-auto pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+      {flash && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] px-4">
+          <div
+            className={`max-w-[92vw] sm:max-w-md rounded-2xl border shadow-sm px-4 py-3 text-sm font-semibold ${
+              flash.kind === 'error'
+                ? 'border-red-200 bg-red-50 text-red-900'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            {flash.message}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white sm:rounded-2xl rounded-none shadow-sm border-y sm:border overflow-hidden">
-        <div className="px-4 py-4 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <div className="text-sm text-white/90">Espace admin</div>
-          <h1 className="text-xl sm:text-3xl font-extrabold">Offres</h1>
-          <p className="mt-1 text-white/90 hidden sm:block">Ajoutez des opportunités et leurs détails.</p>
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <h1 className="text-lg sm:text-2xl font-extrabold leading-tight">Offres</h1>
+          <p className="mt-0.5 text-sm text-white/90 hidden lg:block">Ajoutez des opportunités et leurs détails.</p>
         </div>
 
-        <div className="px-0 py-4 sm:p-6 space-y-6">
+        <div className="px-0 py-3 sm:p-4 space-y-4">
           {showTypesModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/40" />
@@ -862,7 +932,7 @@ export default function AdminOffers() {
           )}
 
           <div className="sm:rounded-2xl rounded-none border-y sm:border bg-white overflow-hidden">
-            <div className="px-5 py-4 border-b">
+            <div className="px-4 py-3 border-b">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-extrabold text-gray-900">Liste des offres</div>
 
@@ -1069,22 +1139,22 @@ export default function AdminOffers() {
                 </div>
               </div>
 
-              <div className="mt-3 hidden sm:block">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <div className="mt-2 hidden sm:block">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                   <div className="lg:col-span-2">
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
+                      className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-sm"
                       placeholder="Rechercher (titre, description)…"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <select
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value)}
-                      className="w-full px-3 py-2.5 border rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-sm"
+                      className="w-full px-3 py-2 border rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-sm"
                       aria-label="Filtrer par type"
                     >
                       <option value="all">Tous types</option>
@@ -1097,7 +1167,7 @@ export default function AdminOffers() {
                     <select
                       value={openFilter}
                       onChange={(e) => setOpenFilter(e.target.value)}
-                      className="w-full px-3 py-2.5 border rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-sm"
+                      className="w-full px-3 py-2 border rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-sm"
                       aria-label="Filtrer par statut"
                     >
                       <option value="all">Tous statuts</option>
@@ -1121,54 +1191,65 @@ export default function AdminOffers() {
             ) : filteredOffers.length === 0 ? (
               <div className="p-5 text-gray-700">Aucune offre.</div>
             ) : (
-              <div className={`px-0 py-3 sm:p-4 ${isCompact ? 'space-y-3 sm:space-y-4' : 'space-y-4 sm:space-y-5'} bg-gray-50/50`}>
+              <div className={`px-0 py-2 sm:p-3 ${isCompact ? 'space-y-2 sm:space-y-3' : 'space-y-3 sm:space-y-4'} bg-gray-50/50`}>
                 {filteredOffers.map((o) => (
                   <div
                     key={o.id}
                     className={`group relative overflow-hidden sm:rounded-2xl rounded-none border-y sm:border bg-white shadow-sm hover:border-gray-300 ${
-                      isCompact ? 'px-4 py-3 sm:p-5' : 'px-4 py-4 sm:p-6'
-                    } ${motionOn ? 'transition hover:shadow-md' : ''}`}
+                      isCompact ? 'px-4 py-3 sm:p-4' : 'px-4 py-4 sm:p-5'
+                    } ${motionOn ? 'transition hover:shadow-md hover:-translate-y-0.5' : ''} cursor-pointer focus-within:ring-2 focus-within:ring-blue-200`}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Voir les détails de l'offre: ${String(o?.title || '').trim() || 'offre'}`}
+                    onClick={() => {
+                      navigate(`/admin/offres/${encodeURIComponent(String(o.id))}`);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/admin/offres/${encodeURIComponent(String(o.id))}`);
+                      }
+                    }}
                   >
                     <div
                       aria-hidden="true"
-                      className={`absolute left-0 top-0 bottom-0 w-1 ${o.is_open ? 'bg-gradient-to-b from-emerald-500 to-teal-500' : 'bg-gradient-to-b from-gray-300 to-gray-400'}`}
+                      className={`pointer-events-none absolute left-0 top-0 bottom-0 w-1 ${o.is_open ? 'bg-gradient-to-b from-emerald-500 to-teal-500' : 'bg-gradient-to-b from-gray-300 to-gray-400'}`}
                     />
 
-                    <div className="flex items-start justify-between gap-3">
+                    <div
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute inset-0 opacity-0 ${motionOn ? 'transition-opacity duration-200' : ''} group-hover:opacity-100 bg-gradient-to-r from-transparent via-blue-50/40 to-transparent`}
+                    />
+
+                    <div className="relative z-10 flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="font-extrabold text-gray-900 leading-snug truncate sm:break-words">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <div className="min-w-0">
+                            <div className="font-extrabold text-gray-900 leading-snug truncate sm:break-words group-hover:text-blue-700">
                           {o.title}
                         </div>
 
-                        <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                          <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-0.5 text-[10px] font-semibold text-gray-700 ring-1 ring-gray-200">
-                            Type : {typeLabel(String(o.type || ''))}
-                          </span>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ring-1 ${
-                              o.is_open
-                                ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
-                                : 'bg-gray-50 text-gray-800 ring-gray-200'
-                            }`}
-                          >
-                            {o.is_open ? 'Ouverte' : 'Fermée'}
-                          </span>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-0.5 text-[10px] font-semibold text-gray-700 ring-1 ring-gray-200">
+                                Type : {typeLabel(String(o.type || ''))}
+                              </span>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ring-1 ${
+                                  o.is_open
+                                    ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
+                                    : 'bg-gray-50 text-gray-800 ring-gray-200'
+                                }`}
+                              >
+                                {o.is_open ? 'Ouverte' : 'Fermée'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="shrink-0 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(o)}
-                          className="inline-flex items-center justify-center rounded-xl px-3 py-1.5 border bg-white hover:bg-gray-50 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                        >
-                          Modifier
-                        </button>
                       </div>
                     </div>
 
                     {o.description && (
-                      <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap line-clamp-2 sm:line-clamp-3">
+                      <div className="relative z-10 mt-2 text-sm text-gray-700 whitespace-pre-wrap line-clamp-2 sm:line-clamp-3">
                         {o.description}
                       </div>
                     )}

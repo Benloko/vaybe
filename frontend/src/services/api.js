@@ -52,19 +52,20 @@ function normalizePublicAssetUrl(rawUrl) {
   if (!raw) return '';
   if (raw.startsWith('data:')) return raw;
 
-  let base = getApiBaseUrl();
-  if (!base) base = guessBackendBaseUrl();
+  // En production, on retourne l'URL absolue telle quelle
+  if (process.env.NODE_ENV === 'production') {
+    return raw;
+  }
 
-  // Cas le plus simple: l'API renvoie un chemin relatif.
-  if (raw.startsWith('/storage/')) return `${base}${raw}`;
-
-  // Cas absolu: si l'app.url backend n'a pas le bon port, on remplace l'origin.
+  // En local, on passe par le proxy CRA pour éviter les problèmes CORS
   try {
     const u = new URL(raw);
-    if (u.pathname.startsWith('/storage/')) return `${base}${u.pathname}`;
+    if (u.pathname.startsWith('/storage/')) return u.pathname;
   } catch {
     // ignore
   }
+
+  if (raw.startsWith('/storage/')) return raw;
 
   return raw;
 }
@@ -286,20 +287,111 @@ export const applicationService = {
   },
 
   // Compte candidat (léger, sans auth serveur)
+  async sendVerificationCode({ email } = {}) {
+    try {
+      const response = await fetch(`${API_URL}/candidates/send-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(extractLaravelError(payload) || 'Erreur lors de l\'envoi du code.');
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async checkVerificationCode({ email, code } = {}) {
+    try {
+      const response = await fetch(`${API_URL}/candidates/check-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(extractLaravelError(payload) || 'Code invalide.');
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
   async registerCandidate({ full_name, email, phone, password, password_confirmation } = {}) {
     try {
       const response = await fetch(`${API_URL}/candidates/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ full_name, email, phone, password, password_confirmation }),
       });
-
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(extractLaravelError(payload) || 'Erreur lors de la création');
-      }
+      if (!response.ok) throw new Error(extractLaravelError(payload) || 'Erreur lors de la création');
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async verifyEmail({ email, code } = {}) {
+    try {
+      const response = await fetch(`${API_URL}/candidates/verify-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(extractLaravelError(payload) || 'Code invalide.');
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async forgotPassword({ identifier } = {}) {
+    try {
+      const response = await fetch(`${API_URL}/candidates/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(extractLaravelError(payload) || 'Erreur.');
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async checkResetCode({ email, code } = {}) {
+    try {
+      const response = await fetch(`${API_URL}/candidates/check-reset-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(extractLaravelError(payload) || 'Code invalide.');
+      return payload;
+    } catch (error) {
+      console.error('Erreur:', error);
+      throw error;
+    }
+  },
+
+  async resetPassword({ email, code, password, password_confirmation } = {}) {
+    try {
+      const response = await fetch(`${API_URL}/candidates/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, password, password_confirmation }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(extractLaravelError(payload) || 'Erreur.');
       return payload;
     } catch (error) {
       console.error('Erreur:', error);

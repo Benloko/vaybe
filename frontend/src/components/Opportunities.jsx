@@ -73,7 +73,7 @@ export default function Opportunities() {
                           Ouverte
                         </span>
                         <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700 ring-1 ring-gray-200">
-                          {offer.type === 'designer' ? 'Designer' : 'Développeur'}
+                          {offer.type_label || (offer.type === 'designer' ? 'Designer' : offer.type === 'dev' ? 'Développeur' : offer.type ? String(offer.type).charAt(0).toUpperCase() + String(offer.type).slice(1) : 'Autre')}
                         </span>
                       </div>
 

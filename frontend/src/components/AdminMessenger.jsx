@@ -115,6 +115,9 @@ export default function AdminMessenger() {
   const [offerFilter, setOfferFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
 
+  const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
+  const desktopSearchRef = useRef(null);
+
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [mobileBroadcastOpen, setMobileBroadcastOpen] = useState(false);
@@ -138,6 +141,19 @@ export default function AdminMessenger() {
   const [decisionMessage, setDecisionMessage] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  const desktopSearchVisible = desktopSearchOpen || Boolean(String(appSearch || '').trim());
+
+  useEffect(() => {
+    if (!desktopSearchVisible) return;
+    window.setTimeout(() => {
+      try {
+        desktopSearchRef.current?.focus?.();
+      } catch {
+        // ignore
+      }
+    }, 0);
+  }, [desktopSearchVisible]);
+
   const [broadcastBody, setBroadcastBody] = useState('');
   const [broadcastSending, setBroadcastSending] = useState(false);
   const [broadcastError, setBroadcastError] = useState('');
@@ -150,7 +166,9 @@ export default function AdminMessenger() {
 
   const rejectionReason = useMemo(() => {
     if (!isRejected) return '';
-    const lastAdmin = [...messages].reverse().find((m) => m?.sender === 'admin' && String(m?.body || '').trim() !== '');
+    const lastAdmin = [...messages]
+      .reverse()
+      .find((m) => m?.sender === 'admin' && String(m?.kind || '') === 'status' && String(m?.body || '').trim() !== '');
     return String(lastAdmin?.body || '').trim();
   }, [isRejected, messages]);
 
@@ -300,15 +318,9 @@ export default function AdminMessenger() {
   const scrollToBottom = (behavior = 'auto') => {
     const isDesktop = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
     const container = (isDesktop ? desktopChatScrollRef.current : mobileChatScrollRef.current);
-    const bottom = (isDesktop ? desktopChatBottomRef.current : mobileChatBottomRef.current);
-    if (bottom && typeof bottom.scrollIntoView === 'function') {
-      try {
-        bottom.scrollIntoView({ behavior, block: 'end' });
-        return;
-      } catch {
-        // fallback below
-      }
-    }
+    // Important: éviter scrollIntoView() ici.
+    // Sur mobile (clavier), certains navigateurs scrollent le document entier
+    // ce qui fait "glisser" le header. On scroll uniquement le conteneur.
     const el = container;
     if (!el) return;
     try {
@@ -317,6 +329,31 @@ export default function AdminMessenger() {
       el.scrollTop = el.scrollHeight;
     }
   };
+
+  useEffect(() => {
+    // Sur mobile, l'overlay est en fixed. On verrouille le scroll du document
+    // pour empêcher le navigateur de scroller le haut de page quand le clavier apparaît.
+    if (!activeId) return;
+    const isDesktop = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
+    if (isDesktop) return;
+
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevBodyOverscroll = document.body.style.overscrollBehavior;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.overscrollBehavior = prevBodyOverscroll;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+    };
+  }, [activeId]);
 
   useEffect(() => {
     loadApplications();
@@ -347,7 +384,12 @@ export default function AdminMessenger() {
       const ts = new Date(value || 0).getTime();
       return Number.isFinite(ts) ? ts : 0;
     };
-    return list.slice().sort((a, b) => toTs(a?.created_at) - toTs(b?.created_at));
+    // Les messages "status" (approbation/rejet) sont des notifications, pas du chat.
+    // On les masque ici pour éviter qu'ils polluent la conversation admin.
+    return list
+      .filter((m) => String(m?.kind || 'message') === 'message')
+      .slice()
+      .sort((a, b) => toTs(a?.created_at) - toTs(b?.created_at));
   }, [messages]);
 
   useEffect(() => {
@@ -615,21 +657,31 @@ export default function AdminMessenger() {
   };
 
   return (
-    <div className="w-full sm:max-w-6xl sm:mx-auto pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
-      <div className="bg-white sm:rounded-2xl rounded-none shadow-sm border-y sm:border overflow-hidden">
-        <div className="px-4 py-3 sm:px-6 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <div>
-            <h1 className="text-xl sm:text-3xl font-extrabold">Conversations</h1>
-            <p className="mt-1 text-white/90">Sélectionnez un candidat.</p>
+    <div className="w-full flex-1 min-h-0 sm:max-w-6xl sm:mx-auto pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] flex flex-col">
+      <div className="bg-white sm:rounded-2xl rounded-none shadow-sm border-y sm:border overflow-hidden flex-1 min-h-0 flex flex-col">
+        <div className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h1 className="text-lg sm:text-xl font-extrabold leading-tight">Conversations</h1>
+              <p className="mt-0.5 text-sm text-white/90 sm:block lg:hidden">Sélectionnez un candidat.</p>
+            </div>
+
+            {activeId ? (
+              <div className="hidden lg:flex min-w-0 items-center justify-end">
+                <div className="min-w-0 text-right text-lg font-extrabold truncate leading-tight">
+                  {active?.nom || (activeLoading ? 'Chargement…' : '—')}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[70vh]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 flex-1 min-h-0 overflow-hidden">
           {/* Liste conversations */}
-          <div className="border-b lg:border-b-0 lg:border-r px-0 py-4 sm:p-4">
-            <div ref={desktopBroadcastCardRef} className="hidden sm:block rounded-2xl border bg-white p-4">
-              <div className="text-sm font-extrabold text-gray-900">Notification globale</div>
-              <div className="text-sm text-gray-600">Envoyer une notification à toutes les candidatures (hors rejetées).</div>
+          <div className="border-b lg:border-b-0 lg:border-r px-0 py-2 sm:p-2 flex flex-col min-h-0">
+            <div ref={desktopBroadcastCardRef} className="hidden sm:block rounded-2xl border bg-white p-3">
+              <div className="text-xs font-extrabold text-gray-900">Notification globale</div>
+              <div className="text-xs text-gray-600">Envoyer une notification à toutes les candidatures (hors rejetées).</div>
 
               {broadcastError && (
                 <div className="mt-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm">
@@ -643,23 +695,23 @@ export default function AdminMessenger() {
                 </div>
               )}
 
-              <div className="mt-3">
+              <div className="mt-2">
                 <textarea
                   ref={desktopBroadcastRef}
                   value={broadcastBody}
                   onChange={(e) => setBroadcastBody(e.target.value)}
-                  rows={2}
-                  className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
+                  rows={1}
+                  className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-sm"
                   placeholder="Ex: Merci, nous revenons vers vous très vite."
                 />
               </div>
 
-              <div className="mt-3 flex justify-end">
+              <div className="mt-2 flex justify-end">
                 <button
                   type="button"
                   disabled={broadcastSending || !String(broadcastBody || '').trim()}
                   onClick={sendBroadcast}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-60"
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60"
                 >
                   {broadcastSending ? 'Envoi…' : 'Envoyer'}
                 </button>
@@ -858,40 +910,89 @@ export default function AdminMessenger() {
               </div>
             </div>
 
-            <div className="mt-3 hidden sm:grid grid-cols-1 gap-2">
-              <input
-                value={appSearch}
-                onChange={(e) => setAppSearch(e.target.value)}
-                className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 bg-white"
-                placeholder="Rechercher par nom…"
-              />
+            <div className="mt-1 hidden sm:block">
+              {desktopSearchVisible ? (
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1 min-w-0">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+                      aria-hidden="true"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input
+                      ref={desktopSearchRef}
+                      value={appSearch}
+                      onChange={(e) => setAppSearch(e.target.value)}
+                      className="w-full pl-9 pr-9 py-2 text-sm rounded-xl bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="Rechercher par nom…"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppSearch('');
+                        setDesktopSearchOpen(false);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-50"
+                      aria-label="Fermer la recherche"
+                      title="Fermer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDesktopSearchOpen(true)}
+                    className="inline-flex items-center justify-center rounded-xl p-2 border border-gray-200 bg-white hover:bg-gray-50"
+                    aria-label="Rechercher"
+                    title="Rechercher"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700" aria-hidden="true">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                  </button>
 
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={offerFilter}
-                  onChange={(e) => setOfferFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-xl bg-white border-gray-300 text-sm font-semibold text-gray-900"
-                  aria-label="Filtrer par offre"
-                >
-                  <option value="all">Toutes les offres</option>
-                  {offerOptions.map((o) => (
-                    <option key={o.key} value={o.key}>{o.label}</option>
-                  ))}
-                </select>
+                  <select
+                    value={offerFilter}
+                    onChange={(e) => setOfferFilter(e.target.value)}
+                    className="flex-1 min-w-0 px-3 py-2 border rounded-xl bg-white border-gray-300 text-sm font-semibold text-gray-900"
+                    aria-label="Filtrer par offre"
+                  >
+                    <option value="all">Toutes les offres</option>
+                    {offerOptions.map((o) => (
+                      <option key={o.key} value={o.key}>{o.label}</option>
+                    ))}
+                  </select>
 
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-xl bg-white border-gray-300 text-sm font-semibold text-gray-900"
-                  aria-label="Filtrer par type"
-                >
-                  <option value="all">Tous les types</option>
-                  <option value="dev">Dev</option>
-                  <option value="designer">Designer</option>
-                </select>
-              </div>
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="flex-1 min-w-0 px-3 py-2 border rounded-xl bg-white border-gray-300 text-sm font-semibold text-gray-900"
+                    aria-label="Filtrer par type"
+                  >
+                    <option value="all">Tous les types</option>
+                    <option value="dev">Dev</option>
+                    <option value="designer">Designer</option>
+                  </select>
+                </div>
+              )}
 
-              <div className="text-xs text-gray-500">
+              <div className="mt-1 text-xs text-gray-500">
                 {filteredApplications.length} candidature{filteredApplications.length > 1 ? 's' : ''}
                 {appSearch.trim() ? ` (filtre “${appSearch.trim()}”)` : ''}
               </div>
@@ -903,160 +1004,119 @@ export default function AdminMessenger() {
               </div>
             )}
 
-            {appsLoading ? (
-              <div className="mt-4 mx-4 sm:mx-0 space-y-2">
-                <div className="h-12 rounded-xl bg-gray-100 animate-pulse" />
-                <div className="h-12 rounded-xl bg-gray-100 animate-pulse" />
-                <div className="h-12 rounded-xl bg-gray-100 animate-pulse" />
-              </div>
-            ) : filteredApplications.length === 0 ? (
-              <div className="mt-4 mx-4 sm:mx-0 rounded-xl border bg-gray-50 p-4 text-gray-700">
-                Aucune candidature approuvée.
-              </div>
-            ) : (
-              <div className="mt-4 border-t sm:border-t-0 sm:space-y-2">
-                {filteredApplications.map((app) => {
-                  const isActive = activeId && String(app.id) === activeId;
-                  const appId = String(app?.id || '');
-                  const meta = appId ? metaByAppId?.[appId] : null;
-                  const lastCandidateTs = Number(meta?.lastCandidateTs || 0);
-                  const seenAt = appId ? getSeenAt(appId) : 0;
-                  const hasNewCandidateMessage = lastCandidateTs > seenAt;
-                  return (
-                    <button
-                      key={app.id}
-                      type="button"
-                      onClick={() => onSelect(app.id)}
-                      className={`w-full text-left sm:rounded-2xl rounded-none border-b sm:border ${
-                        isCompact ? 'px-4 py-3' : 'px-4 py-4'
-                      } bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
-                        motionOn
-                          ? 'transition-all duration-200 ease-out active:scale-[0.99] sm:hover:-translate-y-0.5 sm:hover:shadow-md'
-                          : ''
-                      } ${isActive ? 'sm:border-blue-300 border-blue-200 bg-blue-50' : 'hover:bg-gray-50'}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            {hasNewCandidateMessage && (
-                              <span className="inline-flex items-center" title="Nouveau message candidat">
-                                <span className="h-2.5 w-2.5 rounded-full bg-red-600" aria-hidden="true" />
-                                <span className="sr-only">Nouveau message candidat</span>
-                              </span>
-                            )}
-                            <div className="font-semibold text-gray-900">{app.nom}</div>
+            <div className="flex-1 min-h-0 overflow-auto">
+              {appsLoading ? (
+                <div className="mt-4 mx-4 sm:mx-0 space-y-2">
+                  <div className="h-12 rounded-xl bg-gray-100 animate-pulse" />
+                  <div className="h-12 rounded-xl bg-gray-100 animate-pulse" />
+                  <div className="h-12 rounded-xl bg-gray-100 animate-pulse" />
+                </div>
+              ) : filteredApplications.length === 0 ? (
+                <div className="mt-4 mx-4 sm:mx-0 rounded-xl border bg-gray-50 p-4 text-gray-700">
+                  Aucune candidature approuvée.
+                </div>
+              ) : (
+                <div className="mt-2 border-t sm:border-t-0 sm:space-y-2">
+                  {filteredApplications.map((app) => {
+                    const isActive = activeId && String(app.id) === activeId;
+                    const appId = String(app?.id || '');
+                    const meta = appId ? metaByAppId?.[appId] : null;
+                    const lastCandidateTs = Number(meta?.lastCandidateTs || 0);
+                    const seenAt = appId ? getSeenAt(appId) : 0;
+                    const hasNewCandidateMessage = lastCandidateTs > seenAt;
+                    return (
+                      <button
+                        key={app.id}
+                        type="button"
+                        onClick={() => onSelect(app.id)}
+                        className={`w-full text-left sm:rounded-2xl rounded-none border-b sm:border ${
+                          isCompact ? 'px-3 py-2.5' : 'px-3 py-3'
+                        } bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                          motionOn
+                            ? 'transition-all duration-200 ease-out active:scale-[0.99] sm:hover:-translate-y-0.5 sm:hover:shadow-md'
+                            : ''
+                        } ${isActive ? 'sm:border-blue-300 border-blue-200 bg-blue-50' : 'hover:bg-gray-50'}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              {hasNewCandidateMessage && (
+                                <span className="inline-flex items-center" title="Nouveau message candidat">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-red-600" aria-hidden="true" />
+                                  <span className="sr-only">Nouveau message candidat</span>
+                                </span>
+                              )}
+                              <div className="font-semibold text-gray-900">{app.nom}</div>
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {app.role === 'designer' ? 'Designer' : 'Dev'}
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-600">
-                            {app.role === 'designer' ? 'Designer' : 'Dev'}
+                          <div className="shrink-0 flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusStyles(app.status)}`}
+                            >
+                              {statusLabel(app.status)}
+                            </span>
                           </div>
                         </div>
-                        <div className="shrink-0 flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusStyles(app.status)}`}
-                          >
-                            {statusLabel(app.status)}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Chat */}
-          <div className="hidden lg:col-span-2 lg:flex lg:flex-col p-4">
+          <div className="hidden lg:col-span-2 lg:flex lg:flex-col p-2 min-h-0 overflow-hidden">
             {!activeId ? (
               <div className="rounded-2xl border bg-gray-50 p-8 text-center text-gray-700">
                 Sélectionnez une conversation pour commencer.
               </div>
             ) : (
               <>
-                <div className="rounded-2xl border p-4 bg-white">
+                <div className="mt-2 rounded-2xl border bg-white flex-1 min-h-0 flex flex-col overflow-hidden">
                   {activeError && (
-                    <div className="mb-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm">
+                    <div className="p-3 border-b bg-red-50 text-red-800 text-sm">
                       {activeError}
                     </div>
                   )}
 
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-xs text-gray-500">Candidat</div>
-                      <div className="flex items-center gap-2">
-                        {activeId ? (
-                          <NavLink
-                            to={`/admin/candidatures/${activeId}`}
-                            state={{ backTo: `${location.pathname}${location.search || ''}` }}
-                            className="text-lg font-extrabold text-gray-900 hover:underline"
-                            title="Voir la candidature"
+                  {active && isPending && (
+                    <div className="p-3 border-b bg-white">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 items-end">
+                        <div className="lg:col-span-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">Motif (pour rejeter)</label>
+                          <textarea
+                            value={decisionMessage}
+                            onChange={(e) => setDecisionMessage(e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 text-sm"
+                            placeholder="Requis uniquement si vous rejetez."
+                          />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                          <button
+                            type="button"
+                            disabled={updatingStatus}
+                            onClick={() => updateStatus('approved')}
+                            className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-60"
                           >
-                            {active?.nom || (activeLoading ? 'Chargement…' : '—')}
-                          </NavLink>
-                        ) : (
-                          <div className="text-lg font-extrabold text-gray-900">{active?.nom || (activeLoading ? 'Chargement…' : '—')}</div>
-                        )}
-                        {active && (
-                          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusStyles(active.status)}`}>
-                            {statusLabel(active.status)}
-                          </span>
-                        )}
-                      </div>
-                      {active ? (
-                        <div className="text-sm text-gray-600">{active?.role === 'designer' ? 'Designer' : 'Dev'}</div>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {active && isPending ? (
-                    <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3 items-end">
-                      <div className="lg:col-span-2">
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Motif (pour rejeter)</label>
-                        <textarea
-                          value={decisionMessage}
-                          onChange={(e) => setDecisionMessage(e.target.value)}
-                          rows={2}
-                          className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
-                          placeholder="Requis uniquement si vous rejetez."
-                        />
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2 justify-end">
-                        <button
-                          type="button"
-                          disabled={updatingStatus}
-                          onClick={() => updateStatus('approved')}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold disabled:opacity-60"
-                        >
-                          Approuver
-                        </button>
-                        <button
-                          type="button"
-                          disabled={updatingStatus}
-                          onClick={() => updateStatus('rejected')}
-                          className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold disabled:opacity-60"
-                        >
-                          Rejeter
-                        </button>
+                            Approuver
+                          </button>
+                          <button
+                            type="button"
+                            disabled={updatingStatus}
+                            onClick={() => updateStatus('rejected')}
+                            className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold disabled:opacity-60"
+                          >
+                            Rejeter
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  ) : active ? (
-                    <div className="mt-3 text-sm text-gray-600">
-                      Décision déjà prise : cette candidature est <span className="font-semibold">{statusLabel(active.status)}</span>.
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="mt-4 rounded-2xl border bg-white flex-1 flex flex-col overflow-hidden">
-                  <div className="px-4 py-3 border-b flex items-center justify-between">
-                    <div className="text-sm font-extrabold text-gray-900">{isApproved ? 'Conversation' : 'Notifications'}</div>
-                    <button
-                      type="button"
-                      onClick={() => loadConversation(activeId)}
-                      className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-sm font-semibold"
-                    >
-                      Actualiser
-                    </button>
-                  </div>
+                  )}
 
                   {active && isRejected && (
                     <div className="p-4 border-b bg-rose-50 text-rose-900 text-sm">
@@ -1070,7 +1130,7 @@ export default function AdminMessenger() {
                   )}
 
                   {!isRejected && (
-                    <div ref={desktopChatScrollRef} className="p-4 flex-1 overflow-auto bg-gray-50">
+                    <div ref={desktopChatScrollRef} className="p-3 flex-1 min-h-0 overflow-auto bg-gray-50">
                       {messagesLoading ? (
                         <div className="space-y-2">
                           <div className="h-10 rounded-xl bg-white animate-pulse" />
@@ -1119,21 +1179,21 @@ export default function AdminMessenger() {
                       Rejet final : pas de conversation.
                     </div>
                   ) : (
-                    <div className="p-4 border-t bg-white">
-                      <div className="rounded-2xl border border-gray-200 bg-white p-3">
+                    <div className="p-2 border-t bg-white shrink-0">
+                      <div className="rounded-2xl border border-gray-200 bg-white p-2">
                         <div className="flex items-end gap-2">
                           <textarea
                             value={draft}
                             onChange={(e) => setDraft(e.target.value)}
                             rows={2}
-                            className="flex-1 min-w-0 px-4 py-3 border border-gray-200 rounded-2xl bg-gray-50 text-sm resize-none placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                            className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-2xl bg-gray-50 text-sm resize-none placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                             placeholder={isApproved ? 'Écrivez un message…' : 'Écrivez une notification…'}
                           />
                           <button
                             type="button"
                             disabled={sending || !draft.trim()}
                             onClick={sendAdminMessage}
-                            className="shrink-0 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60 transition-colors"
+                            className="shrink-0 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60 transition-colors"
                             aria-label="Envoyer"
                             title="Envoyer"
                           >
@@ -1280,6 +1340,7 @@ export default function AdminMessenger() {
                       <textarea
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
+                        onFocus={() => window.setTimeout(() => scrollToBottom('auto'), 0)}
                         rows={2}
                         className="flex-1 min-w-0 px-4 py-3 border border-gray-200 rounded-2xl bg-gray-50 text-sm resize-none placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                         placeholder={isApproved ? 'Écrivez un message…' : 'Écrivez une notification…'}

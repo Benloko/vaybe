@@ -95,15 +95,22 @@ export default function ApplicationSubmissionDetail() {
         <div className="px-4 py-4 sm:px-6 sm:py-6 bg-gradient-to-r from-slate-900 to-slate-700 text-white">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-xl sm:text-2xl font-extrabold">Détails de la candidature</h1>
-            {!loading && !error && application?.id ? (
-              <Link
-                to={`/profil/${application.id}`}
-                onClick={activateProfile}
-                className="shrink-0 px-4 py-2.5 rounded-2xl bg-white text-slate-900 hover:bg-white/90 text-sm sm:text-sm font-extrabold whitespace-nowrap"
-              >
-                Accéder au profil
-              </Link>
-            ) : null}
+            {!loading && !error && application?.id ? (() => {
+              const isActive = String(application.id) === String(localStorage.getItem('lastApplicationId') || '');
+              return (
+                <Link
+                  to={`/profil/${application.id}`}
+                  onClick={activateProfile}
+                  className={`shrink-0 px-4 py-2.5 rounded-2xl text-sm sm:text-sm font-extrabold whitespace-nowrap ${
+                    isActive
+                      ? 'bg-yellow-400 text-slate-900 hover:bg-yellow-300'
+                      : 'bg-white text-slate-900 hover:bg-white/90'
+                  }`}
+                >
+                  {isActive ? '⭐ Profil actif' : 'Accéder au profil'}
+                </Link>
+              );
+            })() : null}
           </div>
           <p className="mt-1 text-sm sm:text-base text-white/90">Consultable, non modifiable.</p>
         </div>
@@ -129,7 +136,7 @@ export default function ApplicationSubmissionDetail() {
                   <div className="text-sm text-gray-500">Candidat</div>
                   <div className="text-lg sm:text-xl font-extrabold text-gray-900 leading-snug">{application.nom}</div>
                   <div className="mt-1 text-sm sm:text-base text-gray-600">
-                    {application.offer_title ? application.offer_title : (application.role === 'designer' ? 'Designer' : 'Développeur')}
+                    {application.offer_title ? application.offer_title : (application.offer_type_label || application.role_label || application.role || 'Candidature')}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 sm:flex-col sm:items-end sm:gap-2">
@@ -218,7 +225,7 @@ export default function ApplicationSubmissionDetail() {
                     <div className="text-sm text-gray-500">CV</div>
                     {application.cv ? (
                       <a
-                        href={application.cv}
+                        href={applicationService.normalizePublicAssetUrl(application.cv)}
                         target="_blank"
                         rel="noreferrer"
                         className="mt-1 inline-block text-blue-700 hover:underline break-all text-sm sm:text-base"

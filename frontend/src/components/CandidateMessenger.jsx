@@ -261,7 +261,10 @@ export default function CandidateMessenger() {
     try {
       setMessagesLoading(true);
       setNotificationsLoading(true);
-      const payload = await applicationService.getApplicationMessages(id);
+      const candidateEmail = String(appData?.email || '').trim();
+      const payload = await applicationService.getApplicationMessages(id, {
+        candidateEmail: candidateEmail || undefined,
+      });
       const loadedMessages = payload?.data || [];
       setMessages(loadedMessages);
 
@@ -293,25 +296,52 @@ export default function CandidateMessenger() {
       try {
         const isApproved = String(appData?.status || '') === 'approved';
         const isConversationRoute = !isNotificationsRoute;
-        if (!(isApproved && isConversationRoute)) return;
+        if (isApproved && isConversationRoute) {
 
-        const seenKey = `candidateNotificationsSeenAt:${String(id)}`;
-        const unreadKey = `candidateUnreadCount:${String(id)}`;
+          const seenKey = `candidateNotificationsSeenAt:${String(id)}`;
+          const unreadKey = `candidateUnreadCount:${String(id)}`;
 
-        let newestAdminTs = 0;
-        for (const m of Array.isArray(loadedMessages) ? loadedMessages : []) {
-          if (m?.sender !== 'admin') continue;
-          const kind = String(m?.kind || 'message');
-          if (kind !== 'message') continue;
-          if (isLikelyStatusBody(m?.body)) continue;
-          const ts = new Date(m?.created_at || 0).getTime();
-          if (!Number.isFinite(ts) || ts <= 0) continue;
-          if (ts > newestAdminTs) newestAdminTs = ts;
+          let newestAdminTs = 0;
+          for (const m of Array.isArray(loadedMessages) ? loadedMessages : []) {
+            if (m?.sender !== 'admin') continue;
+            const kind = String(m?.kind || 'message');
+            if (kind !== 'message') continue;
+            if (isLikelyStatusBody(m?.body)) continue;
+            const ts = new Date(m?.created_at || 0).getTime();
+            if (!Number.isFinite(ts) || ts <= 0) continue;
+            if (ts > newestAdminTs) newestAdminTs = ts;
+          }
+
+          localStorage.setItem(seenKey, new Date(newestAdminTs > 0 ? newestAdminTs : Date.now()).toISOString());
+          localStorage.setItem(unreadKey, '0');
+          window.dispatchEvent(new Event('candidateNotificationsChanged'));
         }
+      } catch {
+        // ignore
+      }
 
-        localStorage.setItem(seenKey, new Date(newestAdminTs > 0 ? newestAdminTs : Date.now()).toISOString());
-        localStorage.setItem(unreadKey, '0');
-        window.dispatchEvent(new Event('candidateNotificationsChanged'));
+      // Badge "notifications" (statut) — on le remet à zéro quand on ouvre l'écran Notifications.
+      try {
+        if (isNotificationsRoute) {
+
+          const seenKey = `candidateStatusSeenAt:${String(id)}`;
+          const unreadKey = `candidateStatusUnreadCount:${String(id)}`;
+
+          let newestTs = 0;
+          for (const m of Array.isArray(loadedMessages) ? loadedMessages : []) {
+            if (m?.sender !== 'admin') continue;
+            const kind = String(m?.kind || 'message');
+            const isStatusNotification = kind !== 'message' || isLikelyStatusBody(m?.body);
+            if (!isStatusNotification) continue;
+            const ts = new Date(m?.created_at || 0).getTime();
+            if (!Number.isFinite(ts) || ts <= 0) continue;
+            if (ts > newestTs) newestTs = ts;
+          }
+
+          localStorage.setItem(seenKey, new Date(newestTs > 0 ? newestTs : Date.now()).toISOString());
+          localStorage.setItem(unreadKey, '0');
+          window.dispatchEvent(new Event('candidateNotificationsChanged'));
+        }
       } catch {
         // ignore
       }
